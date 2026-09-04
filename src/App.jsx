@@ -1,90 +1,108 @@
 import { useState, useEffect } from 'react';
-import './App.css'; 
+import './App.css';
 
 function App() {
-  const [status, setStatus] = useState('Очікування дій...');
+  const [question, setQuestion] = useState('');
+  const [result, setResult] = useState('');
+  const [status, setStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   useEffect(() => {
-    // Ініціалізуємо Telegram Web App при завантаженні сторінки
     if (window.Telegram && window.Telegram.WebApp) {
       window.Telegram.WebApp.ready();
     }
   }, []);
 
-  const handlePayment = async () => {
+  // Безкоштовний розклад
+  const handleFreeReading = async () => {
     setIsLoading(true);
-    setStatus('Створення рахунку...');
+    setStatus('Генеруємо безкоштовний розклад...');
+    setResult('');
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL;
-      
-      if (!backendUrl) {
-        throw new Error("Не знайдено адресу бекенду (VITE_BACKEND_URL)!");
-      }
-
-      // 1. Робимо запит на наш FastAPI бекенд
-      const res = await fetch(`${backendUrl}/create-invoice`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
+      const res = await fetch(`${backendUrl}/free-reading`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: question || "Розклад дня" })
       });
-      
-      if (!res.ok) {
-        throw new Error(`Помилка сервера: код ${res.status}`);
-      }
-      
       const data = await res.json();
-
-      // 2. Якщо бекенд повернув посилання на оплату
-      if (data.invoice_link) {
-        setStatus('Відкриття вікна оплати Telegram...');
-        
-        // Відкриваємо нативне спливаюче вікно оплати Stars у Telegram
-        window.Telegram.WebApp.openInvoice(data.invoice_link, (paymentStatus) => {
-          if (paymentStatus === "paid") {
-            setStatus("✅ Оплата успішна! Готуємо розклад...");
-            // TODO: Тут можна додати виклик функції генерації розкладу Таро
-          } else if (paymentStatus === "cancelled") {
-            setStatus("❌ Оплату скасовано користувачем.");
-          } else if (paymentStatus === "failed") {
-            setStatus("⚠️ Виникла помилка під час оплати.");
-          }
-        });
+      if (res.ok) {
+        setResult(data.reading);
+        setStatus('✅ Безкоштовний розклад готовий!');
       } else {
-        setStatus('Не вдалося отримати платіжне посилання.');
+        throw new Error(data.detail || 'Помилка сервера');
       }
     } catch (err) {
-      console.error("Помилка:", err);
       setStatus(`Помилка: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Платний розклад через Stars
+  const handlePaidReading = async () => {
+    setIsLoading(true);
+    setStatus('Створення рахунку...');
+
+    try {
+      const res = await fetch(`${backendUrl}/create-invoice`, { method: 'POST' });
+      const data = await res.json();
+
+      if (data.invoice_link) {
+        window.Telegram.WebApp.openInvoice(data.invoice_link, (paymentStatus) => {
+          if (paymentStatus === 'paid') {
+            setStatus('✅ Оплачено! Генеруємо повний розклад...');
+            handleFreeReading(); // Або викликайте окремий ендпоінт для детального розкладу
+          } else {
+            setStatus('❌ Оплату скасовано.');
+            setIsLoading(false);
+          }
+        });
+      }
+    } catch (err) {
+      setStatus(`Помилка: ${err.message}`);
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div style={{ textAlign: 'center', padding: '20px', fontFamily: 'sans-serif' }}>
+    <div style={{ padding: '20px', fontFamily: 'sans-serif', textAlign: 'center' }}>
       <h1>🔮 AI Tarot</h1>
-      <p>Отримайте персональний розклад Таро за допомогою штучного інтелекту.</p>
       
-      <div style={{ margin: '20px 0', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '8px', color: 'black' }}>
-        <p><strong>Статус:</strong> {status}</p>
+      <input 
+        type="text" 
+        placeholder="Задайте питання картам..."
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        style={{ width: '80%', padding: '10px', marginBottom: '15px', borderRadius: '6px', border: '1px solid #ccc' }}
+      />
+
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '15px' }}>
+        <button 
+          onClick={handleFreeReading} 
+          disabled={isLoading}
+          style={{ padding: '10px 15px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '6px' }}
+        >
+          Безкоштовно (1 карта)
+        </button>
+
+        <button 
+          onClick={handlePaidReading} 
+          disabled={isLoading}
+          style={{ padding: '10px 15px', backgroundColor: '#0088cc', color: '#fff', border: 'none', borderRadius: '6px' }}
+        >
+          Детальний (1 ⭐️)
+        </button>
       </div>
 
-      <button 
-        onClick={handlePayment} 
-        disabled={isLoading}
-        style={{
-          padding: '12px 24px',
-          fontSize: '16px',
-          backgroundColor: isLoading ? '#ccc' : '#0088cc',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: isLoading ? 'not-allowed' : 'pointer'
-        }}
-      >
-        {isLoading ? "Завантаження..." : "Зробити розклад (1 ⭐️)"}
-      </button>
+      {status && <p style={{ fontSize: '14px', color: '#555' }}>{status}</p>}
+      {result && (
+        <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '8px', textAlign: 'left', color: '#333' }}>
+          {result}
+        </div>
+      )}
     </div>
   );
 }
