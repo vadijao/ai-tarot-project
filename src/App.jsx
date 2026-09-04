@@ -17,7 +17,7 @@ function App() {
   });
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const BOT_USERNAME = "ВАШ_BOT_USERNAME"; // Вкажіть тут username вашого бота без @
+  const BOT_USERNAME = "Таро AI 🔮"; // Вкажіть тут username вашого бота без @
 
   useEffect(() => {
     if (window.Telegram && window.Telegram.WebApp) {
