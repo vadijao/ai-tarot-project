@@ -1,4 +1,4 @@
-iimport os
+import os
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +7,9 @@ import google.generativeai as genai
 
 app = FastAPI()
 
+# ==========================================
+# 1. НАЛАШТУВАННЯ CORS ДЛЯ VERCEL
+# ==========================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,33 +31,37 @@ class ReadingRequest(BaseModel):
 def read_root():
     return {"status": "AI Tarot Backend is running!"}
 
-# --- 1. БЕЗКОШТОВНИЙ РОЗКЛАД (Gemini AI) ---
+# ==========================================
+# 2. БЕЗКОШТОВНИЙ РОЗКЛАД (GEMINI AI)
+# ==========================================
 @app.post("/free-reading")
 async def free_reading(req: ReadingRequest):
     if not GEMINI_API_KEY:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY не налаштовано")
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY не налаштовано на сервері")
     
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel("gemini-1.5-flash")
         prompt = f"Зроби короткий та влучний безкоштовний розклад Таро українською мовою на питання: {req.question}. Використай 1 карту."
         response = model.generate_content(prompt)
         return {"reading": response.text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- 2. СТВОРЕННЯ РАХУНКУ TELEGRAM STARS ---
+# ==========================================
+# 3. ПЛАТНИЙ РОЗКЛАД (TELEGRAM STARS)
+# ==========================================
 @app.post("/create-invoice")
 async def create_invoice():
     if not TELEGRAM_BOT_TOKEN:
-        raise HTTPException(status_code=500, detail="TELEGRAM_BOT_TOKEN відсутній")
+        raise HTTPException(status_code=500, detail="TELEGRAM_BOT_TOKEN відсутній у Environment Variables")
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/createInvoiceLink"
     payload = {
         "title": "Детальний розклад Таро",
         "description": "Повний деталізований розклад від ШІ на 3 карти",
         "payload": "paid_tarot_reading",
-        "provider_token": "", # Порожній для Stars
-        "currency": "XTR",
+        "provider_token": "",  # Порожній рядок для Telegram Stars
+        "currency": "XTR",     # Валюта Telegram Stars
         "prices": [{"label": "Розклад", "amount": 1}]
     }
 
@@ -62,5 +69,5 @@ async def create_invoice():
         res = await client.post(url, json=payload)
         data = res.json()
         if not data.get("ok"):
-            raise HTTPException(status_code=400, detail=data.get("description"))
+            raise HTTPException(status_code=400, detail=data.get("description", "Помилка Telegram API"))
         return {"invoice_link": data["result"]}
