@@ -1,17 +1,15 @@
-import os
+iimport os
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import google.generativeai as genai
 
 app = FastAPI()
 
-# ==========================================
-# ДОЗВІЛ НА CORS ДЛЯ ФРОНТЕНДУ (VERCEL)
-# ==========================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,37 +21,46 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
+class ReadingRequest(BaseModel):
+    question: str = "Загальний розклад"
+
 @app.get("/")
 def read_root():
     return {"status": "AI Tarot Backend is running!"}
 
-# ==========================================
-# ЕНДПОІНТ СТВОРЕННЯ РАХУНКУ (TELEGRAM STARS)
-# ==========================================
+# --- 1. БЕЗКОШТОВНИЙ РОЗКЛАД (Gemini AI) ---
+@app.post("/free-reading")
+async def free_reading(req: ReadingRequest):
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY не налаштовано")
+    
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"Зроби короткий та влучний безкоштовний розклад Таро українською мовою на питання: {req.question}. Використай 1 карту."
+        response = model.generate_content(prompt)
+        return {"reading": response.text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- 2. СТВОРЕННЯ РАХУНКУ TELEGRAM STARS ---
 @app.post("/create-invoice")
 async def create_invoice():
     if not TELEGRAM_BOT_TOKEN:
-        raise HTTPException(status_code=500, detail="TELEGRAM_BOT_TOKEN is missing on server")
+        raise HTTPException(status_code=500, detail="TELEGRAM_BOT_TOKEN відсутній")
 
-    # Для Mini App використовуємо createInvoiceLink замість sendInvoice
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/createInvoiceLink"
-    
     payload = {
-        "title": "Розклад Таро",
-        "description": "Оплата за індивідуальний розклад від ШІ",
-        "payload": "tarot_reading_payment",
-        "provider_token": "", # ОБОВ'ЯЗКОВО порожній рядок для Telegram Stars!
-        "currency": "XTR",    # Валюта - зірки
-        "prices": [{"label": "Розклад", "amount": 1}] # 1 зірка = 1 XTR
+        "title": "Детальний розклад Таро",
+        "description": "Повний деталізований розклад від ШІ на 3 карти",
+        "payload": "paid_tarot_reading",
+        "provider_token": "", # Порожній для Stars
+        "currency": "XTR",
+        "prices": [{"label": "Розклад", "amount": 1}]
     }
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(url, json=payload)
-        data = response.json()
-        
+        res = await client.post(url, json=payload)
+        data = res.json()
         if not data.get("ok"):
-            print(f"Помилка Telegram API: {data}")
-            raise HTTPException(status_code=400, detail=data.get("description", "Error creating invoice link"))
-            
-        # Повертаємо готове посилання на оплату
+            raise HTTPException(status_code=400, detail=data.get("description"))
         return {"invoice_link": data["result"]}
