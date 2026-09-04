@@ -62,7 +62,7 @@ async def create_invoice():
         "payload": "paid_tarot_reading",
         "provider_token": "",  # Порожній рядок для Telegram Stars
         "currency": "XTR",     # Валюта Telegram Stars
-        "prices": [{"label": "Розклад", "amount": 1}]
+        "prices": [{"label": "Розклад", "amount": 50}]
     }
 
     async with httpx.AsyncClient() as client:
