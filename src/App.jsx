@@ -1,183 +1,90 @@
-import { useEffect, useState } from 'react';
-import './App.css';
-
-const BOT_USERNAME = "y_ai_tarot_bot"; // Вкажіть юзернейм вашого бота без @
+import { useState, useEffect } from 'react';
+import './App.css'; 
 
 function App() {
-  const [userName, setUserName] = useState('Шукач');
-  const [userId, setUserId] = useState(0);
-  const [question, setQuestion] = useState('');
-  const [selectedCards, setSelectedCards] = useState([]);
-  const [reading, setReading] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1);
-  const [freeReadings, setFreeReadings] = useState(0);
-
-  const tg = window.Telegram?.WebApp;
+  const [status, setStatus] = useState('Очікування дій...');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (tg) {
-      tg.ready();
-      tg.expand();
-      const user = tg.initDataUnsafe?.user;
-      const uid = user?.id || 12345;
-      setUserId(uid);
-      if (user?.first_name) setUserName(user.first_name);
-
-      // Отримання реферального ID із параметрів запуску
-      const startParam = tg.initDataUnsafe?.start_param;
-      const referrerId = startParam ? parseInt(startParam.replace('ref_', ''), 10) : null;
-
-      // Авторизація/Ініціалізація користувача
-      fetch('/api/init-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: uid, referrer_id: referrerId })
-      })
-        .then((res) => res.json())
-        .then((data) => setFreeReadings(data.free_readings || 0))
-        .catch((err) => console.error(err));
+    // Ініціалізуємо Telegram Web App при завантаженні сторінки
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
     }
-  }, [tg]);
+  }, []);
 
-  const triggerHaptic = () => tg?.HapticFeedback?.impactOccurred('medium');
+  const handlePayment = async () => {
+    setIsLoading(true);
+    setStatus('Створення рахунку...');
 
-  const handleShare = () => {
-    triggerHaptic();
-    const shareUrl = `https://t.me/${BOT_USERNAME}?startapp=ref_${userId}`;
-    const text = "Отримай безкоштовний штучний інтелект-розклад Таро! 🔮";
-    tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`);
-  };
-
-  const executeReading = async () => {
     try {
-      const response = await fetch('/api/tarot-reading', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, user_name: userName, question })
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+      
+      if (!backendUrl) {
+        throw new Error("Не знайдено адресу бекенду (VITE_BACKEND_URL)!");
+      }
+
+      // 1. Робимо запит на наш FastAPI бекенд
+      const res = await fetch(`${backendUrl}/create-invoice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
       });
-      const data = await response.json();
-      if (data.success) {
-        setReading(data.reading);
-        setFreeReadings(data.free_readings_left);
-        setStep(3);
-      } else {
-        alert('Помилка генерації AI');
+      
+      if (!res.ok) {
+        throw new Error(`Помилка сервера: код ${res.status}`);
       }
-    } catch {
-      alert("Помилка з'єднання");
-    } finally {
-      setLoading(false);
-    }
-  };
+      
+      const data = await res.json();
 
-  const handleCardClick = async (cardIndex) => {
-    if (selectedCards.includes(cardIndex) || loading) return;
-    triggerHaptic();
-    const newSelected = [...selectedCards, cardIndex];
-    setSelectedCards(newSelected);
-
-    if (newSelected.length === 3) {
-      setLoading(true);
-
-      // Якщо є безкоштовні розклади — виконуємо одразу
-      if (freeReadings > 0) {
-        await executeReading();
-        return;
-      }
-
-      // Якщо безкоштовних немає — викликаємо Telegram Stars
-      try {
-        const invoiceRes = await fetch('/api/create-stars-invoice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId })
+      // 2. Якщо бекенд повернув посилання на оплату
+      if (data.invoice_link) {
+        setStatus('Відкриття вікна оплати Telegram...');
+        
+        // Відкриваємо нативне спливаюче вікно оплати Stars у Telegram
+        window.Telegram.WebApp.openInvoice(data.invoice_link, (paymentStatus) => {
+          if (paymentStatus === "paid") {
+            setStatus("✅ Оплата успішна! Готуємо розклад...");
+            // TODO: Тут можна додати виклик функції генерації розкладу Таро
+          } else if (paymentStatus === "cancelled") {
+            setStatus("❌ Оплату скасовано користувачем.");
+          } else if (paymentStatus === "failed") {
+            setStatus("⚠️ Виникла помилка під час оплати.");
+          }
         });
-        const invoiceData = await invoiceRes.json();
-
-        if (invoiceData.success) {
-          tg.openInvoice(invoiceData.invoice_url, async (status) => {
-            if (status === 'paid') {
-              await executeReading();
-            } else {
-              alert('Оплату скасовано');
-              setLoading(false);
-            }
-          });
-        } else {
-          alert('Помилка підключення платіжної системи');
-          setLoading(false);
-        }
-      } catch {
-        alert('Помилка створення рахунку');
-        setLoading(false);
+      } else {
+        setStatus('Не вдалося отримати платіжне посилання.');
       }
+    } catch (err) {
+      console.error("Помилка:", err);
+      setStatus(`Помилка: ${err.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="tarot-container">
-      <header className="header">
-        <h1>🔮 Таро Оракул AI</h1>
-        <p className="description">
-          Персональні розклади Таро на основі штучного інтелекту. Задайте питання та довіртеся знакам Всесвіту.
-        </p>
-        <div className="status-bar">
-          <span className="badge">🎁 Безкоштовно: <b>{freeReadings}</b></span>
-          <button className="btn-share-mini" onClick={handleShare}>
-            +1 розклад за друга 🔗
-          </button>
-        </div>
-      </header>
+    <div style={{ textAlign: 'center', padding: '20px', fontFamily: 'sans-serif' }}>
+      <h1>🔮 AI Tarot</h1>
+      <p>Отримайте персональний розклад Таро за допомогою штучного інтелекту.</p>
+      
+      <div style={{ margin: '20px 0', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '8px', color: 'black' }}>
+        <p><strong>Статус:</strong> {status}</p>
+      </div>
 
-      {step === 1 && (
-        <div className="card-box">
-          <label className="label">Ваше запитання до карт:</label>
-          <textarea
-            className="input-textarea"
-            rows="3"
-            placeholder="Наприклад: Що чекає мене у кар'єрі найближчим часом?"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-          />
-          <button
-            className="btn-main"
-            disabled={!question.trim()}
-            onClick={() => { triggerHaptic(); setStep(2); }}
-          >
-            Розпочати ритуал ✨
-          </button>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className="card-box">
-          <p className="instruction">Засередьтеся на питанні: <i>"{question}"</i></p>
-          <p className="sub-instruction">Оберіть <b>{3 - selectedCards.length}</b> карти:</p>
-          <div className="cards-grid">
-            {[0, 1, 2, 3, 4, 5].map((idx) => (
-              <div
-                key={idx}
-                className={`tarot-card ${selectedCards.includes(idx) ? 'active' : ''}`}
-                onClick={() => handleCardClick(idx)}
-              >
-                {selectedCards.includes(idx) ? '🔮' : '🎴'}
-              </div>
-            ))}
-          </div>
-          {loading && <p className="loading-text">Зчитуємо енергетику карт...</p>}
-        </div>
-      )}
-
-      {step === 3 && (
-        <div className="card-box">
-          <h2>Трактування Всесвіту</h2>
-          <div className="reading-text">{reading}</div>
-          <button className="btn-main" onClick={() => { setQuestion(''); setSelectedCards([]); setStep(1); }}>
-            Новий розклад ↺
-          </button>
-        </div>
-      )}
+      <button 
+        onClick={handlePayment} 
+        disabled={isLoading}
+        style={{
+          padding: '12px 24px',
+          fontSize: '16px',
+          backgroundColor: isLoading ? '#ccc' : '#0088cc',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: isLoading ? 'not-allowed' : 'pointer'
+        }}
+      >
+        {isLoading ? "Завантаження..." : "Зробити розклад (1 ⭐️)"}
+      </button>
     </div>
   );
 }
