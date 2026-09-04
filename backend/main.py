@@ -1,149 +1,74 @@
 import os
-import sqlite3
-import requests
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import google.generativeai as genai
-from dotenv import load_dotenv
 
-load_dotenv()
+# Ініціалізація додатку FastAPI
+app = FastAPI()
 
+# ==========================================
+# 1. НАЛАШТУВАННЯ CORS (ОБОВ'ЯЗКОВО ДЛЯ VERCEL)
+# ==========================================
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Дозволяє запити з будь-яких доменів (можна вказати ваш Vercel URL)
+    allow_credentials=True,
+    allow_methods=["*"],  # Дозволяє всі методи (GET, POST, OPTIONS тощо)
+    allow_headers=["*"],  # Дозволяє будь-які заголовки
+)
+
+# Отримання змінних середовища (Render)
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
+# Налаштування Gemini AI
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-DB_FILE = "tarot_bot.db"
-
-def get_db():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_db():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            free_readings INTEGER DEFAULT 1,
-            invited_count INTEGER DEFAULT 0,
-            referrer_id INTEGER
-        )
-    """)
-    conn.commit()
-    conn.close()
-
-# Створення таблиці при запуску
-init_db()
-
-class UserInitRequest(BaseModel):
-    user_id: int
-    referrer_id: int | None = None
-
-class TarotRequest(BaseModel):
-    user_id: int
-    user_name: str = "Шукач"
-    question: str
-
+# ==========================================
+# 2. МОДЕЛІ ДАНИХ (Pydantic)
+# ==========================================
 class InvoiceRequest(BaseModel):
-    user_id: int
+    chat_id: int
+    # Можете додати інші поля за потреби
 
-@app.post("/api/init-user")
-async def init_user(req: UserInitRequest):
-    conn = get_db()
-    cursor = conn.cursor()
+# ==========================================
+# 3. ЕНДПОІНТИ (РОУТИ)
+# ==========================================
+
+@app.get("/")
+def read_root():
+    return {"status": "AI Tarot Backend is running!"}
+
+# Ендпоінт для створення рахунку в Telegram (Stars)
+@app.post("/create-invoice")
+async def create_invoice(req: InvoiceRequest):
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(status_code=500, detail="TELEGRAM_BOT_TOKEN is missing")
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendInvoice"
     
-    cursor.execute("SELECT free_readings, invited_count FROM users WHERE user_id = ?", (req.user_id,))
-    user = cursor.fetchone()
-    
-    if not user:
-        # Створення нового користувача з 1 безкоштовним розкладом
-        cursor.execute(
-            "INSERT INTO users (user_id, free_readings, invited_count, referrer_id) VALUES (?, 1, 0, ?)",
-            (req.user_id, req.referrer_id)
-        )
-        
-        # Нараховуємо +1 розклад рефералу
-        if req.referrer_id and req.referrer_id != req.user_id:
-            cursor.execute(
-                "UPDATE users SET free_readings = free_readings + 1, invited_count = invited_count + 1 WHERE user_id = ?",
-                (req.referrer_id,)
-            )
-            
-        conn.commit()
-        cursor.execute("SELECT free_readings, invited_count FROM users WHERE user_id = ?", (req.user_id,))
-        user = cursor.fetchone()
-
-    conn.close()
-    return {"free_readings": user["free_readings"], "invited_count": user["invited_count"]}
-
-@app.post("/api/tarot-reading")
-@app.post("/tarot-reading")
-async def tarot_reading(req: TarotRequest):
-    if not GEMINI_API_KEY:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY missing")
-
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT free_readings FROM users WHERE user_id = ?", (req.user_id,))
-    user = cursor.fetchone()
-    
-    free_left = user["free_readings"] if user else 0
-    
-    # Списання безкоштовного розкладу
-    if free_left > 0:
-        cursor.execute("UPDATE users SET free_readings = free_readings - 1 WHERE user_id = ?", (req.user_id,))
-        conn.commit()
-        free_left -= 1
-
-    conn.close()
-
-    try:
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        prompt = (
-            f"Ти професійний містичний таролог. Користувач {req.user_name} запитує: '{req.question}'. "
-            f"Зроби коротке (2-3 абзаци), глибоке та атмосферне трактування розкладу з 3 карт українською мовою."
-        )
-        response = model.generate_content(prompt)
-        return {
-            "success": True, 
-            "reading": response.text, 
-            "free_readings_left": free_left
-        }
-    except Exception as e:
-        print(f"--- ПОМИЛКА GEMINI ---: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.post("/api/create-stars-invoice")
-async def create_stars_invoice(req: InvoiceRequest):
-    if not BOT_TOKEN:
-        raise HTTPException(status_code=500, detail="TELEGRAM_BOT_TOKEN missing")
-    
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/createInvoiceLink"
+    # Спеціальні налаштування для Telegram Stars
     payload = {
-        "title": "Персональний розклад Таро",
-        "description": "3 карти + глибоке трактування від AI",
-        "payload": f"tarot_{req.user_id}",
-        "currency": "XTR",
-        "prices": [{"label": "1 розклад", "amount": 15}]
+        "chat_id": req.chat_id,
+        "title": "Розклад Таро",
+        "description": "Оплата за індивідуальний розклад від ШІ",
+        "payload": "tarot_payment",  # Внутрішній ідентифікатор платежу
+        "provider_token": "",        # ДЛЯ ЗІРОК (STARS) МАЄ БУТИ ПОРОЖНІМ!
+        "currency": "XTR",           # Валюта Telegram Stars
+        "prices": [{"label": "Розклад", "amount": 1}] # 1 зірка = 1 XTR
     }
-    
-    res = requests.post(url, json=payload).json()
-    if res.get("ok"):
-        return {"success": True, "invoice_url": res["result"]}
-    
-    return {"success": False, "error": res.get("description")}
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json=payload)
+        data = response.json()
+        
+        if not data.get("ok"):
+            print(f"Помилка Telegram API: {data}")
+            raise HTTPException(status_code=400, detail=data.get("description", "Payment error"))
+            
+        return {"status": "success", "result": data["result"]}
+
+# Тут можете додати ваш ендпоінт для Gemini AI (/tarot-reading тощо)
