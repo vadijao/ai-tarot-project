@@ -16,7 +16,7 @@ function App() {
   });
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const BOT_USERNAME = "ВАШ_BOT_USERNAME"; // Замініть на ім'я вашого бота без @
+  const BOT_USERNAME = "ВАШ_BOT_USERNAME";
 
   useEffect(() => {
     if (window.Telegram?.WebApp) {
@@ -101,16 +101,13 @@ function App() {
   };
 
   return (
-    <>
-      {/* === АНІМОВАНИЙ ЗАДНІЙ ФОН (Магічна куля) === */}
+    <div className="app-container">
+      {/* 🔮 МАГІЧНА КУЛЯ НА ФОНІ */}
       <div className="magic-bg">
-        <div className="crystal-ball">
-          {/* Якщо у вас є своє посилання на GIF-картинку, розкоментуйте рядок нижче та вставте його: */}
-          {/* <img src="https://посилання_на_вашу_картинку.gif" alt="Magic Ball" /> */}
-        </div>
+        <div className="crystal-ball"></div>
       </div>
 
-      {/* === ОСНОВНИЙ КОНТЕНТ ДОДАТКУ === */}
+      {/* 🃏 ОСНОВНА КАРТКА ИНТЕРФЕЙСУ */}
       <div className="tarot-card-box">
         <h1 className="title">AI TAROT</h1>
         <p className="subtitle">Таємниці майбутнього у картах</p>
@@ -142,10 +139,10 @@ function App() {
           🎁 Запросити друга (+1 безкоштовний розклад)
         </button>
 
-        {status && <p style={{ fontSize: '0.85rem', color: '#ffd700', marginTop: '12px' }}>{status}</p>}
+        {status && <p style={{ fontSize: '0.85rem', color: '#ffd700', marginTop: '12px', textAlign: 'center' }}>{status}</p>}
         {result && <div className="result-area"><p>{result}</p></div>}
       </div>
-    </>
+    </div>
   );
 }
 
