@@ -1,17 +1,92 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Montserrat:wght@400;600&display=swap');
 
-body {
+* {
+  box-sizing: border-box;
   margin: 0;
-  background: radial-gradient(circle at top, #2b095c 0%, #0d0122 70%, #050010 100%);
+  padding: 0;
+}
+
+body {
+  background: #070114;
   color: #f0e6ff;
   font-family: 'Montserrat', sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
-.tarot-card-box {
-  max-width: 420px;
-  margin: 0 auto;
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   padding: 20px 16px;
+  position: relative;
+}
+
+/* =========================================
+   АНИМАЦІЯ МАГІЧНОЇ КУЛІ
+========================================= */
+.magic-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.crystal-ball {
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 35%, 
+    #ffffff 0%, 
+    #e0c3fc 20%, 
+    #8a2be2 50%, 
+    #2b095c 80%,
+    #050010 100%
+  );
+  animation: levitate 5s ease-in-out infinite, pulseGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes levitate {
+  0%, 100% {
+    transform: translateY(15px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 50px 20px rgba(138, 43, 226, 0.4), inset 0 0 30px rgba(255, 255, 255, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 110px 45px rgba(255, 215, 0, 0.65), inset 0 0 60px rgba(255, 255, 255, 0.7);
+  }
+}
+
+/* =========================================
+   СТИЛІ КАРТКИ
+========================================= */
+.tarot-card-box {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 420px;
+  background: rgba(13, 1, 34, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 20px;
+  padding: 24px 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
   text-align: center;
 }
 
@@ -19,12 +94,12 @@ body {
   font-family: 'Cinzel', serif;
   font-size: 2.2rem;
   color: #ffd700;
-  text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
   margin-bottom: 4px;
 }
 
 .subtitle {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #bca0dc;
   margin-bottom: 20px;
 }
@@ -33,20 +108,20 @@ body {
   display: flex;
   justify-content: space-around;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(255, 215, 0, 0.25);
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 20px;
 }
 
 .stat-num {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #ffd700;
 }
 
 .stat-desc {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: #a28cb8;
   text-transform: uppercase;
 }
@@ -54,12 +129,11 @@ body {
 .magical-input {
   width: 100%;
   padding: 14px;
-  background: rgba(15, 5, 30, 0.8);
+  background: rgba(10, 2, 25, 0.85);
   border: 1px solid rgba(186, 85, 211, 0.5);
   border-radius: 10px;
   color: #fff;
   font-size: 0.95rem;
-  box-sizing: border-box;
   margin-bottom: 16px;
 }
 
@@ -77,9 +151,10 @@ body {
   padding: 14px;
   border: none;
   border-radius: 10px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
   margin-bottom: 10px;
+  text-transform: uppercase;
 }
 
 .btn-share {
@@ -95,92 +170,10 @@ body {
 
 .result-area {
   margin-top: 20px;
-  background: rgba(20, 10, 40, 0.9);
+  background: rgba(5, 0, 15, 0.9);
   border: 1px solid rgba(255, 215, 0, 0.4);
   border-radius: 12px;
   padding: 16px;
   text-align: left;
   line-height: 1.5;
-}
-/* =========================================
-   ОНОВЛЕНІ СТИЛІ ДЛЯ КУЛІ ТА КАРТКИ
-========================================= */
-.magic-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 0; /* Куля буде над фоном, але під карткою */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.crystal-ball {
-  width: 340px;
-  height: 340px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 35% 35%, 
-    rgba(255, 255, 255, 0.95) 0%, 
-    rgba(224, 195, 252, 0.85) 20%, 
-    rgba(138, 43, 226, 0.7) 50%, 
-    rgba(43, 9, 92, 0.9) 85%
-  );
-  box-shadow: 
-    0 0 90px 35px rgba(186, 85, 211, 0.7),
-    inset 0 0 50px rgba(255, 255, 255, 0.6);
-  animation: levitate 6s ease-in-out infinite, pulseGlow 3s ease-in-out infinite alternate;
-}
-
-.tarot-card-box {
-  position: relative;
-  z-index: 10; /* Текст і кнопки залишаються поверх кулі */
-  background: rgba(13, 1, 34, 0.75);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 215, 0, 0.35);
-  border-radius: 20px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
-}
-
-/* Якщо ви додасте тег <img> із GIF-кою всередину кулі */
-.crystal-ball img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-  opacity: 0.8; /* Трохи прозорості, щоб зливалося з фоном */
-}
-
-/* --- Ключові кадри для анімацій --- */
-
-/* 1. Левітація (плавний рух вгору-вниз) */
-@keyframes levitate {
-  0%, 100% { transform: translateY(10px); }
-  50% { transform: translateY(-20px); }
-}
-
-/* 2. Пульсація світіння (куля стає то яскравішою, то тьмянішою) */
-@keyframes pulseGlow {
-  0% { 
-    box-shadow: 0 0 40px 10px rgba(138, 43, 226, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.2); 
-    filter: brightness(0.9);
-  }
-  100% { 
-    box-shadow: 0 0 80px 25px rgba(186, 85, 211, 0.6), inset 0 0 60px rgba(255, 255, 255, 0.6); 
-    filter: brightness(1.2);
-  }
-}
-
-/* Щоб картки на фоні кулі краще читалися, додамо їм трохи напівпрозорого фону */
-.tarot-card-box {
-  position: relative;
-  z-index: 1;
-  background: rgba(10, 5, 20, 0.4); /* Напівпрозора підкладка */
-  backdrop-filter: blur(4px); /* Розмиття кулі під текстом */
-  border-radius: 16px;
-  margin-top: 20px;
 }
