@@ -55,9 +55,11 @@ def free_reading(req: ReadingRequest):
 
     payload_bytes = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode('utf-8')
     
+    # Використовуємо лише стабільні та доступні назви моделей
     models_to_try = [
         "gemini-1.5-flash",
-        "gemini-2.0-flash"
+        "gemini-2.5-flash",
+        "gemini-1.5-pro"
     ]
     last_error = ""
 
