@@ -7,8 +7,8 @@ export default function App() {
   const [error, setError] = useState('');
   
   // Стан для лічильників спроб
-  const [freeAttempts, setFreeAttempts] = useState(1);
-  const [bonusAttempts, setBonusAttempts] = useState(0);
+  const [freeAttempts, setFreeAttempts] = useState(10);
+  const [bonusAttempts, setBonusAttempts] = useState(5);
 
   // Точний юзернейм вашого бота
   const botUsername = "y_ai_tarot_bot";
