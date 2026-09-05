@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './App.css'; // Завантажує фонове зображення з кулею та базові стилі
+import './App.css';
 
 const BACKEND_URL = "https://ai-tarot-backend.onrender.com";
 
@@ -65,29 +65,66 @@ export default function App() {
   };
 
   return (
-    <div className="app-container min-h-screen text-white flex items-center justify-center p-4 font-sans">
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '16px',
+      boxSizing: 'border-box'
+    }}>
       {/* Головна картка додатка */}
-      <div className="w-full max-w-sm bg-[#0e0620]/80 border border-amber-500/30 rounded-3xl p-6 shadow-2xl backdrop-blur-md flex flex-col gap-4">
+      <div style={{
+        width: '100%',
+        maxWidth: '380px',
+        backgroundColor: 'rgba(14, 6, 32, 0.88)',
+        border: '1px solid rgba(245, 158, 11, 0.35)',
+        borderRadius: '24px',
+        padding: '24px',
+        boxShadow: '0 20px 30px rgba(0, 0, 0, 0.7)',
+        backdropFilter: 'blur(10px)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        boxSizing: 'border-box'
+      }}>
         
         {/* Заголовок */}
-        <div className="text-center">
-          <h1 className="text-3xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 tracking-wider m-0">
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{
+            margin: 0,
+            fontSize: '32px',
+            fontFamily: 'serif',
+            fontWeight: 'bold',
+            background: 'linear-gradient(90deg, #fde68a 0%, #f59e0b 50%, #d97706 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            letterSpacing: '2px'
+          }}>
             TARO
           </h1>
-          <p className="text-[11px] text-purple-200/70 mt-1 m-0">
+          <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: 'rgba(233, 213, 255, 0.7)' }}>
             Таємниці майбутнього
           </p>
         </div>
 
         {/* Лічильник спроб */}
-        <div className="bg-[#160b30]/90 border border-purple-900/60 rounded-xl p-3 flex justify-between text-center">
-          <div className="flex-1 border-r border-purple-900/60 pr-2">
-            <span className="text-sm font-bold text-amber-400">{freeAttempts} (Безкоштовно)</span>
-            <div className="text-[9px] text-purple-300/60 uppercase tracking-wider mt-1">ПЕРША СПРОБА</div>
+        <div style={{
+          backgroundColor: '#160b30',
+          border: '1px solid rgba(88, 28, 135, 0.6)',
+          borderRadius: '12px',
+          padding: '12px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          textAlign: 'center'
+        }}>
+          <div style={{ flex: 1, borderRight: '1px solid rgba(88, 28, 135, 0.6)', paddingRight: '8px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#fbbf24' }}>{freeAttempts} (Безкоштовно)</span>
+            <div style={{ fontSize: '9px', color: 'rgba(216, 180, 254, 0.6)', textTransform: 'uppercase', marginTop: '4px' }}>ПЕРША СПРОБА</div>
           </div>
-          <div className="flex-1 pl-2">
-            <span className="text-sm font-bold text-amber-400">{bonusAttempts}</span>
-            <div className="text-[9px] text-purple-300/60 uppercase tracking-wider mt-1">БОНУСИ ЗА ДРУЗІВ</div>
+          <div style={{ flex: 1, paddingLeft: '8px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#fbbf24' }}>{bonusAttempts}</span>
+            <div style={{ fontSize: '9px', color: 'rgba(216, 180, 254, 0.6)', textTransform: 'uppercase', marginTop: '4px' }}>БОНУСИ ЗА ДРУЗІВ</div>
           </div>
         </div>
 
@@ -97,62 +134,133 @@ export default function App() {
           placeholder="Задайте питання або залиште порожнім"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          className="w-full bg-[#160b30]/90 border border-purple-900/60 rounded-xl p-3 text-white placeholder-purple-300/30 focus:outline-none focus:border-amber-500/50 text-xs transition"
+          style={{
+            width: '100%',
+            backgroundColor: '#160b30',
+            border: '1px solid rgba(88, 28, 135, 0.6)',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            color: '#fff',
+            fontSize: '12px',
+            outline: 'none',
+            boxSizing: 'border-box'
+          }}
         />
 
         {/* Жовта кнопка */}
         <button
           onClick={handleGetReading}
           disabled={loading}
-          className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 hover:brightness-110 active:scale-[0.98] text-black font-bold py-3.5 px-4 rounded-xl shadow-lg transition uppercase tracking-wide text-xs disabled:opacity-50"
+          style={{
+            width: '100%',
+            background: 'linear-gradient(90deg, #fbbf24, #f59e0b, #fbbf24)',
+            border: 'none',
+            color: '#000',
+            fontWeight: 'bold',
+            padding: '14px',
+            borderRadius: '12px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.6 : 1,
+            fontSize: '12px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}
         >
           {loading ? "ГЕНЕРУЄМО РОЗКЛАД..." : "ОТРИМАТИ РОЗКЛАД (БЕЗКОШТОВНО)"}
         </button>
 
         {/* Реферальна кнопка */}
-        <button className="w-full bg-[#160b30]/90 border border-purple-900/60 hover:bg-[#1f0f44] text-purple-200 text-xs py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition">
+        <button style={{
+          width: '100%',
+          backgroundColor: '#160b30',
+          border: '1px solid rgba(88, 28, 135, 0.6)',
+          color: '#e9d5ff',
+          fontSize: '12px',
+          padding: '12px',
+          borderRadius: '12px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px'
+        }}>
           <span>🎁</span> Запросити друга (+1 безкоштовний розклад)
         </button>
 
         {/* Блок "Як це працює" */}
-        <div className="bg-[#160b30]/70 border border-purple-900/60 rounded-xl p-4 text-xs text-purple-200/90 space-y-2">
-          <div className="font-semibold text-center text-purple-100 flex items-center justify-center gap-1.5 mb-2">
-            <span>🔮</span> Як це працює?
+        <div style={{
+          backgroundColor: 'rgba(22, 11, 48, 0.8)',
+          border: '1px solid rgba(88, 28, 135, 0.6)',
+          borderRadius: '12px',
+          padding: '14px',
+          fontSize: '11px',
+          color: 'rgba(233, 213, 255, 0.9)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          <div style={{ textAlign: 'center', fontWeight: 'bold', color: '#fff', marginBottom: '4px' }}>
+            🔮 Як це працює?
           </div>
-          <p className="flex items-start gap-2 m-0 text-[11px] leading-relaxed">
-            <span className="text-amber-400">•</span>
+          <p style={{ margin: 0, lineHeight: '1.4', display: 'flex', gap: '6px' }}>
+            <span style={{ color: '#fbbf24' }}>•</span>
             Задайте хвилююче питання або залиште поле порожнім для розкладу дня.
           </p>
-          <p className="flex items-start gap-2 m-0 text-[11px] leading-relaxed">
-            <span className="text-amber-400">•</span>
+          <p style={{ margin: 0, lineHeight: '1.4', display: 'flex', gap: '6px' }}>
+            <span style={{ color: '#fbbf24' }}>•</span>
             Отримайте персональну інтерпретацію вашої ситуації.
           </p>
-          <p className="flex items-start gap-2 m-0 text-[11px] leading-relaxed">
-            <span className="text-amber-400">•</span>
+          <p style={{ margin: 0, lineHeight: '1.4', display: 'flex', gap: '6px' }}>
+            <span style={{ color: '#fbbf24' }}>•</span>
             Миттєво дізнайтесь розшифрування та персональну пораду.
           </p>
         </div>
 
         {/* Повідомлення про помилку */}
         {error && (
-          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 p-3.5 rounded-xl text-xs flex items-start gap-2 leading-relaxed">
-            <span className="text-base">⚠️</span>
-            <div>{error}</div>
+          <div style={{
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            color: '#fcd34d',
+            padding: '12px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            lineHeight: '1.4'
+          }}>
+            ⚠️ {error}
           </div>
         )}
 
-        {/* Текстовий результат */}
+        {/* Результат розкладу */}
         {result && result.reading && (
-          <div className="bg-[#160b30]/95 border border-purple-900/80 rounded-xl p-4 mt-2 space-y-3">
-            <div className="text-xs text-purple-100 leading-relaxed whitespace-pre-line">
+          <div style={{
+            backgroundColor: '#160b30',
+            border: '1px solid rgba(126, 34, 206, 0.8)',
+            borderRadius: '12px',
+            padding: '16px',
+            marginTop: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            <div style={{ fontSize: '12px', color: '#f3e8ff', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
               {result.reading}
             </div>
 
             <button
               onClick={handleShareResult}
-              className="w-full bg-purple-900/50 hover:bg-purple-800/60 border border-purple-700/50 text-white text-xs py-2.5 rounded-lg transition flex items-center justify-center gap-2 mt-2"
+              style={{
+                width: '100%',
+                backgroundColor: 'rgba(88, 28, 135, 0.6)',
+                border: '1px solid rgba(126, 34, 206, 0.5)',
+                color: '#fff',
+                fontSize: '12px',
+                padding: '10px',
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
             >
-              <span>📲</span> Надіслати результат у чат
+              📲 Надіслати результат у чат
             </button>
           </div>
         )}
