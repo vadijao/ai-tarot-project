@@ -7,75 +7,66 @@ function App() {
   const [status, setStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Збереження лічильників у пам'яті пристрою
   const [readingsDone, setReadingsDone] = useState(() => {
-    return parseInt(localStorage.getItem('tarot_readings_count') || '0', 10);
+    return parseInt(localStorage.getItem('tarot_done') || '0', 10);
   });
   
-  const [bonusReadings, setBonusReadings] = useState(() => {
-    return parseInt(localStorage.getItem('tarot_bonus_count') || '0', 10);
+  const [bonusCount, setBonusCount] = useState(() => {
+    return parseInt(localStorage.getItem('tarot_bonus') || '0', 10);
   });
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const BOT_USERNAME = "Таро AI 🔮"; // Вкажіть тут username вашого бота без @
+  const BOT_USERNAME = "ВАШ_BOT_USERNAME"; // Замініть на ім'я вашого бота без @
 
   useEffect(() => {
-    if (window.Telegram && window.Telegram.WebApp) {
+    if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
     }
   }, []);
 
-  // Визначення чи розклад безкоштовний
-  const isFree = readingsDone === 0 || bonusReadings > 0;
-  const currentCostText = isFree ? "БЕЗКОШТОВНО" : "50 ⭐️";
+  const isFree = readingsDone === 0 || bonusCount > 0;
 
-  // Виклик генерації розкладу
-  const executeReading = async () => {
+  const fetchReading = async () => {
     setIsLoading(true);
-    setStatus('🔮 Звертаємося до таємниць Таро...');
+    setStatus('🔮 Звертаємося до Всесвіту...');
     setResult('');
 
     try {
       const res = await fetch(`${backendUrl}/free-reading`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: question || "Загальний розклад долі" })
+        body: JSON.stringify({ question: question || "Загальний розклад" })
       });
       const data = await res.json();
 
       if (res.ok) {
         setResult(data.reading);
-        setStatus('✨ Доля розкрита!');
-
-        // Оновлюємо лічильники
+        setStatus('✨ Розклад готовий!');
         if (readingsDone === 0) {
-          const nextReadings = 1;
-          setReadingsDone(nextReadings);
-          localStorage.setItem('tarot_readings_count', nextReadings.toString());
-        } else if (bonusReadings > 0) {
-          const nextBonus = bonusReadings - 1;
-          setBonusReadings(nextBonus);
-          localStorage.setItem('tarot_bonus_count', nextBonus.toString());
+          setReadingsDone(1);
+          localStorage.setItem('tarot_done', '1');
+        } else if (bonusCount > 0) {
+          const nextBonus = bonusCount - 1;
+          setBonusCount(nextBonus);
+          localStorage.setItem('tarot_bonus', nextBonus.toString());
         }
       } else {
-        throw new Error(data.detail || 'Помилка генерації');
+        throw new Error(data.detail || 'Помилка');
       }
     } catch (err) {
-      setStatus(`⚠️ Помилка: ${err.message}`);
+      setStatus(`⚠️ ${err.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Головна кнопка "Зробити розклад"
-  const handleTarotAction = async () => {
+  const handleAction = async () => {
     if (isFree) {
-      await executeReading();
+      await fetchReading();
     } else {
-      // Платна процедура (50 зірок)
       setIsLoading(true);
-      setStatus('Створення платіжного запиту...');
+      setStatus('Створення рахунку Stars...');
 
       try {
         const res = await fetch(`${backendUrl}/create-invoice`, { method: 'POST' });
@@ -84,82 +75,65 @@ function App() {
         if (data.invoice_link) {
           window.Telegram.WebApp.openInvoice(data.invoice_link, async (paymentStatus) => {
             if (paymentStatus === 'paid') {
-              setStatus('✅ Оплачено успішно! Генеруємо розклад...');
-              await executeReading();
+              await fetchReading();
             } else {
-              setStatus('❌ Оплату скасовано або перервано.');
+              setStatus('❌ Оплату скасовано.');
               setIsLoading(false);
             }
           });
         } else {
-          throw new Error('Не вдалося отримати посилання на оплату');
+          throw new Error('Помилка генерації рахунку');
         }
       } catch (err) {
-        setStatus(`⚠️ Помилка: ${err.message}`);
+        setStatus(`⚠️ ${err.message}`);
         setIsLoading(false);
       }
     }
   };
 
-  // Поділитися з другом
-  const handleInviteFriend = () => {
-    const shareUrl = `https://t.me/share/url?url=https://t.me/${BOT_USERNAME}&text=Дізнайся%20свою%20долю%20безкоштовно%20у%20магічному%20AI%20Tarot!`;
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.openTelegramLink(shareUrl);
+  const handleInvite = () => {
+    const link = `https://t.me/share/url?url=https://t.me/${BOT_USERNAME}&text=Отримай%20безкоштовний%20розклад%20Таро!`;
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.openTelegramLink(link);
     } else {
-      window.open(shareUrl, '_blank');
+      window.open(link, '_blank');
     }
   };
 
   return (
-    <div className="tarot-container">
-      <h1 className="magical-title">AI TAROT</h1>
-      <p className="subtitle">Дізнайтеся відповіді Всесвіту</p>
+    <div className="tarot-card-box">
+      <h1 className="title">AI TAROT</h1>
+      <p className="subtitle">Таємниці майбутнього у картах</p>
 
-      <div className="stats-card">
-        <div className="stat-item">
-          <span className="stat-val">{readingsDone === 0 ? "1 (Подарунок)" : "0"}</span>
-          <span className="stat-lbl">Перший спроб</span>
+      <div className="stats-grid">
+        <div>
+          <div className="stat-num">{readingsDone === 0 ? "1 (Безкоштовно)" : "Використано"}</div>
+          <div className="stat-desc">Перша спроба</div>
         </div>
-        <div className="stat-item">
-          <span className="stat-val">{bonusReadings}</span>
-          <span className="stat-lbl">Бонуси за друзів</span>
+        <div>
+          <div className="stat-num">{bonusCount}</div>
+          <div className="stat-desc">Бонуси за друзів</div>
         </div>
       </div>
 
       <input 
+        className="magical-input" 
         type="text" 
-        className="magical-input"
-        placeholder="Задайте Ваше запитання картам..."
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
+        placeholder="Напишіть своє запитання..." 
+        value={question} 
+        onChange={(e) => setQuestion(e.target.value)} 
       />
 
-      <div className="actions-group">
-        <button 
-          className="btn-primary" 
-          onClick={handleTarotAction} 
-          disabled={isLoading}
-        >
-          {isLoading ? "Магія відбувається..." : `Отримати розклад (${currentCostText})`}
-        </button>
+      <button className="btn-main" onClick={handleAction} disabled={isLoading}>
+        {isLoading ? "Магія працює..." : `Отримати розклад (${isFree ? 'БЕЗКОШТОВНО' : '50 ⭐️'})`}
+      </button>
 
-        <button 
-          className="btn-secondary" 
-          onClick={handleInviteFriend}
-        >
-          🎁 Запросити друга (+1 безкоштовно)
-        </button>
-      </div>
+      <button className="btn-share" onClick={handleInvite}>
+        🎁 Запросити друга (+1 безкоштовний розклад)
+      </button>
 
-      {status && <p className="status-text">{status}</p>}
-
-      {result && (
-        <div className="result-box">
-          <h3>🔮 Віщування Карт:</h3>
-          <p>{result}</p>
-        </div>
-      )}
+      {status && <p style={{ fontSize: '0.85rem', color: '#ffd700', marginTop: '12px' }}>{status}</p>}
+      {result && <div className="result-area"><p>{result}</p></div>}
     </div>
   );
 }
