@@ -51,17 +51,18 @@ async def free_reading(req: ReadingRequest):
     """
 
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    models_to_try = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]
+    models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
     last_error = ""
 
-    async with httpx.AsyncClient() as client:
+    # trust_env=False блокує вплив проксі-налаштувань Render на httpx
+    async with httpx.AsyncClient(trust_env=False) as client:
         for model_name in models_to_try:
-            endpoint_url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent"
+            full_url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={clean_key}"
             try:
                 response = await client.post(
-                    endpoint_url,
-                    params={"key": clean_key},
+                    full_url,
                     json=payload,
+                    headers={"Content-Type": "application/json"},
                     timeout=30.0
                 )
                 if response.status_code == 200:
@@ -71,11 +72,10 @@ async def free_reading(req: ReadingRequest):
                     return json.loads(clean_json)
                 else:
                     try:
-                        err_data = response.json()
-                        err_detail = err_data.get("error", {}).get("message", response.text)
+                        err_detail = response.json().get("error", {}).get("message", response.text)
                     except Exception:
                         err_detail = response.text
-                    last_error = f"{model_name}: {err_detail}"
+                    last_error = f"{model_name} (HTTP {response.status_code}): {err_detail}"
             except Exception as e:
                 last_error = f"{model_name}: {str(e)}"
                 continue
