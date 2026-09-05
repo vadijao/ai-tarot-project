@@ -55,19 +55,23 @@ def free_reading(req: ReadingRequest):
 
     payload_bytes = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode('utf-8')
     
-    # Актуальні назви моделей Gemini для v1beta API
     models_to_try = [
-        "gemini-2.5-flash",
+        "gemini-1.5-flash",
         "gemini-2.0-flash",
-        "gemini-1.5-flash"
+        "gemini-1.5-pro"
     ]
     last_error = ""
 
     for model_name in models_to_try:
         try:
             conn = http.client.HTTPSConnection("generativelanguage.googleapis.com", 443, timeout=30)
-            headers = {"Content-Type": "application/json"}
-            url_path = f"/v1beta/models/{model_name}:generateContent?key={clean_key}"
+            
+            # Вказуємо x-goog-api-key у заголовок запиту для коректної авторизації
+            headers = {
+                "Content-Type": "application/json",
+                "x-goog-api-key": clean_key
+            }
+            url_path = f"/v1beta/models/{model_name}:generateContent"
             
             conn.request("POST", url_path, body=payload_bytes, headers=headers)
             res = conn.getresponse()
