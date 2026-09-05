@@ -32,9 +32,9 @@ async def free_reading(req: ReadingRequest):
     clean_key = GEMINI_API_KEY.strip("'\" ")
 
     async with httpx.AsyncClient() as client:
-        working_model = "gemini-1.5-flash"
+        candidate_models = []
         
-        # Крок 1: Отримуємо доступні моделі для вашого ключа
+        # 1. Запитуємо перелік діючих моделей для вашого ключа
         try:
             list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={clean_key}"
             list_res = await client.get(list_url, timeout=10.0)
@@ -42,19 +42,20 @@ async def free_reading(req: ReadingRequest):
                 models_data = list_res.json().get("models", [])
                 for m in models_data:
                     if "generateContent" in m.get("supportedGenerationMethods", []):
-                        name = m.get("name", "").replace("models/", "")
-                        if "flash" in name or "pro" in name:
-                            working_model = name
-                            break
+                        name = m.get("name", "")
+                        if name:
+                            candidate_models.append(name)
         except Exception:
             pass
 
-        # Крок 2: Формуємо список варіантів запиту (v1 та v1beta)
-        endpoints_to_try = [
-            f"https://generativelanguage.googleapis.com/v1beta/models/{working_model}:generateContent?key={clean_key}",
-            f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={clean_key}",
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={clean_key}",
-        ]
+        # 2. Резервний список, якщо Google не повернув список
+        if not candidate_models:
+            candidate_models = [
+                "models/gemini-1.5-flash",
+                "models/gemini-1.5-flash-latest",
+                "models/gemini-1.5-pro",
+                "models/gemini-pro"
+            ]
 
         payload = {
             "contents": [{
@@ -63,14 +64,17 @@ async def free_reading(req: ReadingRequest):
         }
 
         last_error = ""
-        for url in endpoints_to_try:
+        # 3. Перебір тільки доступних моделей
+        for model_path in candidate_models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/{model_path}:generateContent?key={clean_key}"
             try:
                 response = await client.post(url, json=payload, timeout=30.0)
-                data = response.json()
                 if response.status_code == 200:
+                    data = response.json()
                     text = data["candidates"][0]["content"]["parts"][0]["text"]
                     return {"reading": text}
                 else:
+                    data = response.json()
                     last_error = data.get("error", {}).get("message", response.text)
             except Exception as e:
                 last_error = str(e)
