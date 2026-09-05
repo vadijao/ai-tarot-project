@@ -33,7 +33,7 @@ function App() {
     setResult('');
 
     try {
-      const res = await fetch(`${backendUrl}/free-reading`, {
+const res = await fetch(`${backendUrl}/free-reading`, {        
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: question || "Загальний розклад" })
