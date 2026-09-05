@@ -109,7 +109,7 @@ const res = await fetch(`${backendUrl}/free-reading`, {
 
       {/* 🃏 ОСНОВНА КАРТКА ИНТЕРФЕЙСУ */}
       <div className="tarot-card-box">
-        <h1 className="title">AI TAROT</h1>
+        <h1 className="...">ТАРО</h1>
         <p className="subtitle">Таємниці майбутнього у картах</p>
 
         <div className="stats-grid">
