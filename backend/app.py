@@ -15,7 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 class ReadingRequest(BaseModel):
     question: str = "Загальний розклад"
@@ -30,7 +30,8 @@ async def free_reading(req: ReadingRequest):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній у Render Environment")
 
-    clean_key = GEMINI_API_KEY.strip("'\" ")
+    # Ретельне очищення ключа від лапок, пробілів та переносів рядків
+    clean_key = GEMINI_API_KEY.strip().strip("'").strip('"')
 
     prompt = f"""
     Ти — досвідчений таролог. Зроби розклад з 3 карт на питання: "{req.question}".
@@ -51,24 +52,31 @@ async def free_reading(req: ReadingRequest):
     """
 
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    
-    # Список підтримуваних моделей з явним протоколом HTTPS
     models_to_try = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]
     last_error = ""
 
     async with httpx.AsyncClient() as client:
         for model_name in models_to_try:
-            target_url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={clean_key}"
+            url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent"
             try:
-                response = await client.post(target_url, json=payload, timeout=30.0)
+                response = await client.post(
+                    url,
+                    params={"key": clean_key},
+                    json=payload,
+                    timeout=30.0
+                )
                 if response.status_code == 200:
                     data = response.json()
                     text = data["candidates"][0]["content"]["parts"][0]["text"]
                     clean_json = text.replace("```json", "").replace("```", "").strip()
                     return json.loads(clean_json)
                 else:
-                    err_detail = response.json().get("error", {}).get("message", response.text)
-                    last_error = f"{model_name}: {err_detail}"
+                    try:
+                        err_data = response.json()
+                        err_detail = err_data.get("error", {}).get("message", response.text)
+                    except Exception:
+                        err_detail = response.text
+                    last_error = f"{model_name} (HTTP {response.status_code}): {err_detail}"
             except Exception as e:
                 last_error = f"{model_name}: {str(e)}"
                 continue
