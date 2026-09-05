@@ -24,7 +24,6 @@ if GEMINI_API_KEY:
 class ReadingRequest(BaseModel):
     question: str = "Загальний розклад"
 
-# Приймає як GET, так і POST запити на головну сторінку
 @app.get("/")
 @app.post("/")
 def read_root():
@@ -33,10 +32,10 @@ def read_root():
 @app.post("/free-reading")
 async def free_reading(req: ReadingRequest):
     if not GEMINI_API_KEY:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній у Render Environment")
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній у Render")
     try:
         model = genai.GenerativeModel("gemini-1.5-flash")
-        prompt = f"Зроби короткий та влучний розклад Таро українською мовою на питання: {req.question}."
+        prompt = f"Зроби короткий та влучний розклад Таро українською мовою: {req.question}."
         response = model.generate_content(prompt)
         return {"reading": response.text}
     except Exception as e:
