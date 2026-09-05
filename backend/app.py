@@ -1,5 +1,11 @@
 import os
 import json
+
+# Повністю очищаємо системні змінні проксі Render ДО імпорту мережевих модулів
+for key in list(os.environ.keys()):
+    if "proxy" in key.lower():
+        os.environ.pop(key, None)
+
 import urllib.request
 import urllib.error
 from fastapi import FastAPI, HTTPException
@@ -31,7 +37,7 @@ def free_reading(req: ReadingRequest):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній у Render Environment")
 
-    clean_key = GEMINI_API_KEY.strip().strip("'").strip('"')
+    clean_key = GEMINI_API_KEY.strip().strip("'").strip('"').strip()
 
     if not clean_key:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY порожній")
@@ -62,6 +68,9 @@ def free_reading(req: ReadingRequest):
     ]
     last_error = ""
 
+    # Примусово створюємо відкривач запитів БЕЗ системних проксі
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
     for model_name in models_to_try:
         url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={clean_key}"
         try:
@@ -71,7 +80,7 @@ def free_reading(req: ReadingRequest):
                 headers={"Content-Type": "application/json"},
                 method="POST"
             )
-            with urllib.request.urlopen(req_obj, timeout=30.0) as response:
+            with opener.open(req_obj, timeout=30.0) as response:
                 if response.status == 200:
                     data = json.loads(response.read().decode('utf-8'))
                     text = data["candidates"][0]["content"]["parts"][0]["text"]
