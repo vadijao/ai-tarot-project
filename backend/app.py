@@ -34,7 +34,7 @@ async def free_reading(req: ReadingRequest):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній")
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         prompt = f"Зроби короткий розклад Таро: {req.question}"
         response = model.generate_content(prompt)
         return {"reading": response.text}
