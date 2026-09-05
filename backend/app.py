@@ -30,7 +30,11 @@ async def free_reading(req: ReadingRequest):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній у Render Environment")
 
-    clean_key = GEMINI_API_KEY.strip().strip("'").strip('"')
+    # Суворе очищення ключа від усіх невидимих символів, пробілів, переносу рядків та лапок
+    clean_key = "".join(c for c in GEMINI_API_KEY if c.isalnum() or c in "-_")
+
+    if not clean_key:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY має некоректний формат у Render Environment")
 
     prompt = f"""
     Ти — досвідчений таролог. Зроби розклад з 3 карт на питання: "{req.question}".
@@ -54,13 +58,13 @@ async def free_reading(req: ReadingRequest):
     models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
     last_error = ""
 
-    # trust_env=False блокує вплив проксі-налаштувань Render на httpx
     async with httpx.AsyncClient(trust_env=False) as client:
         for model_name in models_to_try:
-            full_url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={clean_key}"
+            base_url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent"
             try:
                 response = await client.post(
-                    full_url,
+                    base_url,
+                    params={"key": clean_key},
                     json=payload,
                     headers={"Content-Type": "application/json"},
                     timeout=30.0
