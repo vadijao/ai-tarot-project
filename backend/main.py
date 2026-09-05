@@ -32,33 +32,11 @@ def read_root():
 @app.post("/free-reading")
 async def free_reading(req: ReadingRequest):
     if not GEMINI_API_KEY:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній у Render")
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній")
     try:
         model = genai.GenerativeModel("gemini-1.5-flash")
-        prompt = f"Зроби короткий та влучний розклад Таро українською мовою: {req.question}."
+        prompt = f"Зроби короткий розклад Таро: {req.question}"
         response = model.generate_content(prompt)
         return {"reading": response.text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/create-invoice")
-async def create_invoice():
-    if not TELEGRAM_BOT_TOKEN:
-        raise HTTPException(status_code=500, detail="TELEGRAM_BOT_TOKEN відсутній")
-
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/createInvoiceLink"
-    payload = {
-        "title": "Детальний розклад Таро",
-        "description": "Повний магічний розклад від ШІ",
-        "payload": "tarot_stars_reading",
-        "provider_token": "",
-        "currency": "XTR",
-        "prices": [{"label": "Розклад Таро", "amount": 50}]
-    }
-
-    async with httpx.AsyncClient() as client:
-        res = await client.post(url, json=payload)
-        data = res.json()
-        if not data.get("ok"):
-            raise HTTPException(status_code=400, detail=data.get("description", "Помилка API"))
-        return {"invoice_link": data["result"]}
