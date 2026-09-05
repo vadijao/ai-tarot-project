@@ -24,7 +24,9 @@ if GEMINI_API_KEY:
 class ReadingRequest(BaseModel):
     question: str = "Загальний розклад"
 
+# Приймає як GET, так і POST запити на головну сторінку
 @app.get("/")
+@app.post("/")
 def read_root():
     return {"status": "AI Tarot Backend is running!"}
 
