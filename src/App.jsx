@@ -101,40 +101,51 @@ function App() {
   };
 
   return (
-    <div className="tarot-card-box">
-      <h1 className="title">AI TAROT</h1>
-      <p className="subtitle">Таємниці майбутнього у картах</p>
-
-      <div className="stats-grid">
-        <div>
-          <div className="stat-num">{readingsDone === 0 ? "1 (Безкоштовно)" : "Використано"}</div>
-          <div className="stat-desc">Перша спроба</div>
-        </div>
-        <div>
-          <div className="stat-num">{bonusCount}</div>
-          <div className="stat-desc">Бонуси за друзів</div>
+    <>
+      {/* === АНІМОВАНИЙ ЗАДНІЙ ФОН (Магічна куля) === */}
+      <div className="magic-bg">
+        <div className="crystal-ball">
+          {/* Якщо у вас є своє посилання на GIF-картинку, розкоментуйте рядок нижче та вставте його: */}
+          {/* <img src="https://посилання_на_вашу_картинку.gif" alt="Magic Ball" /> */}
         </div>
       </div>
 
-      <input 
-        className="magical-input" 
-        type="text" 
-        placeholder="Напишіть своє запитання..." 
-        value={question} 
-        onChange={(e) => setQuestion(e.target.value)} 
-      />
+      {/* === ОСНОВНИЙ КОНТЕНТ ДОДАТКУ === */}
+      <div className="tarot-card-box">
+        <h1 className="title">AI TAROT</h1>
+        <p className="subtitle">Таємниці майбутнього у картах</p>
 
-      <button className="btn-main" onClick={handleAction} disabled={isLoading}>
-        {isLoading ? "Магія працює..." : `Отримати розклад (${isFree ? 'БЕЗКОШТОВНО' : '50 ⭐️'})`}
-      </button>
+        <div className="stats-grid">
+          <div>
+            <div className="stat-num">{readingsDone === 0 ? "1 (Безкоштовно)" : "Використано"}</div>
+            <div className="stat-desc">Перша спроба</div>
+          </div>
+          <div>
+            <div className="stat-num">{bonusCount}</div>
+            <div className="stat-desc">Бонуси за друзів</div>
+          </div>
+        </div>
 
-      <button className="btn-share" onClick={handleInvite}>
-        🎁 Запросити друга (+1 безкоштовний розклад)
-      </button>
+        <input 
+          className="magical-input" 
+          type="text" 
+          placeholder="Напишіть своє запитання..." 
+          value={question} 
+          onChange={(e) => setQuestion(e.target.value)} 
+        />
 
-      {status && <p style={{ fontSize: '0.85rem', color: '#ffd700', marginTop: '12px' }}>{status}</p>}
-      {result && <div className="result-area"><p>{result}</p></div>}
-    </div>
+        <button className="btn-main" onClick={handleAction} disabled={isLoading}>
+          {isLoading ? "Магія працює..." : `Отримати розклад (${isFree ? 'БЕЗКОШТОВНО' : '50 ⭐️'})`}
+        </button>
+
+        <button className="btn-share" onClick={handleInvite}>
+          🎁 Запросити друга (+1 безкоштовний розклад)
+        </button>
+
+        {status && <p style={{ fontSize: '0.85rem', color: '#ffd700', marginTop: '12px' }}>{status}</p>}
+        {result && <div className="result-area"><p>{result}</p></div>}
+      </div>
+    </>
   );
 }
 
