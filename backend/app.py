@@ -32,7 +32,6 @@ async def free_reading(req: ReadingRequest):
 
     clean_key = GEMINI_API_KEY.strip("'\" ")
 
-    # ОНОВЛЕНИЙ ПРОМПТ З ПРАВИЛЬНИМИ НАЗВАМИ КАРТИНОК
     prompt = f"""
     Ти — досвідчений таролог. Зроби розклад з 3 карт на питання: "{req.question}".
     
@@ -51,37 +50,27 @@ async def free_reading(req: ReadingRequest):
     Жезли: wa01.jpg, wa02.jpg, wa03.jpg, wa04.jpg, wa05.jpg, wa06.jpg, wa07.jpg, wa08.jpg, wa09.jpg, wa10.jpg, wa11.jpg, wa12.jpg, wa13.jpg, wa14.jpg
     """
 
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    
+    # Список підтримуваних моделей з явним протоколом HTTPS
+    models_to_try = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]
+    last_error = ""
+
     async with httpx.AsyncClient() as client:
-        # Автопошук робочої моделі
-        candidate_models = ["models/gemini-1.5-flash", "models/gemini-1.5-pro", "models/gemini-pro"]
-        
-        try:
-            list_url = f"[https://generativelanguage.googleapis.com/v1beta/models?key=](https://generativelanguage.googleapis.com/v1beta/models?key=){clean_key}"
-            list_res = await client.get(list_url, timeout=10.0)
-            if list_res.status_code == 200:
-                models_data = list_res.json().get("models", [])
-                candidate_models = [m["name"] for m in models_data if "generateContent" in m.get("supportedGenerationMethods", [])] or candidate_models
-        except Exception:
-            pass
-
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        last_error = ""
-
-        for model_path in candidate_models:
-            url = f"[https://generativelanguage.googleapis.com/v1beta/](https://generativelanguage.googleapis.com/v1beta/){model_path}:generateContent?key={clean_key}"
+        for model_name in models_to_try:
+            target_url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={clean_key}"
             try:
-                response = await client.post(url, json=payload, timeout=30.0)
+                response = await client.post(target_url, json=payload, timeout=30.0)
                 if response.status_code == 200:
                     data = response.json()
                     text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    
-                    # Очищення від маркдауну, якщо AI його додав
                     clean_json = text.replace("```json", "").replace("```", "").strip()
                     return json.loads(clean_json)
                 else:
-                    last_error = response.json().get("error", {}).get("message", response.text)
+                    err_detail = response.json().get("error", {}).get("message", response.text)
+                    last_error = f"{model_name}: {err_detail}"
             except Exception as e:
-                last_error = str(e)
+                last_error = f"{model_name}: {str(e)}"
                 continue
 
         raise HTTPException(status_code=500, detail=f"Google API Error: {last_error}")
