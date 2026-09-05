@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './App.css'; // ВАЖЛИВО: Цей рядок повертає ваш задній фон та глобальні налаштування!
+import './App.css';
 
 const BACKEND_URL = "https://ai-tarot-backend.onrender.com";
 
@@ -9,7 +9,7 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
-  // Баланс для тестування
+  // Тестовий баланс спроб
   const [freeAttempts, setFreeAttempts] = useState(10);
   const [bonusAttempts, setBonusAttempts] = useState(5);
 
@@ -65,107 +65,92 @@ export default function App() {
   };
 
   return (
-    <div className="app-container" style={{ minHeight: '100vh', padding: '20px', color: '#fff', fontFamily: 'sans-serif' }}>
-      
-      {/* ШАПКА */}
-      <header style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <h1 style={{ margin: '0', fontSize: '28px', letterSpacing: '2px' }}>TAPO</h1>
-        <p style={{ margin: '5px 0 15px 0', fontSize: '12px', color: '#b39ddb' }}>Таємниці майбутнього у картах</p>
+    <div className="app-container min-h-screen text-white p-4 flex flex-col items-center">
+      {/* Шапка */}
+      <header className="text-center my-4 w-full max-w-md">
+        <h1 className="text-3xl font-extrabold tracking-wider uppercase text-white m-0">TAPO</h1>
+        <p className="text-xs text-purple-200/80 mt-1">Таємниці майбутнього у картах</p>
 
-        {/* Лічильники */}
-        <div style={{ display: 'flex', backgroundColor: 'rgba(20, 10, 40, 0.8)', border: '1px solid #4a148c', borderRadius: '10px', padding: '10px' }}>
-          <div style={{ flex: 1, borderRight: '1px solid #4a148c' }}>
-            <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{freeAttempts}</div>
-            <div style={{ fontSize: '10px', color: '#9575cd', marginTop: '4px' }}>1 (Безкоштовно)<br/>ПЕРША СПРОБА</div>
+        {/* Блок лічильників */}
+        <div className="flex justify-between bg-[#180f2a]/90 border border-[#3b236e] rounded-xl p-3 mt-4 text-center shadow-lg">
+          <div className="flex-1 border-r border-[#3b236e]">
+            <span className="text-sm font-bold text-white">{freeAttempts} (Безкоштовно)</span>
+            <div className="text-[10px] text-purple-300 uppercase tracking-wider mt-1">ПЕРША СПРОБА</div>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{bonusAttempts}</div>
-            <div style={{ fontSize: '10px', color: '#9575cd', marginTop: '4px' }}>0<br/>БОНУСИ ЗА ДРУЗІВ</div>
+          <div className="flex-1">
+            <span className="text-sm font-bold text-white">{bonusAttempts}</span>
+            <div className="text-[10px] text-purple-300 uppercase tracking-wider mt-1">БОНУСИ ЗА ДРУЗІВ</div>
           </div>
         </div>
       </header>
 
-      {/* ОСНОВНА ЧАСТИНА */}
-      <main style={{ maxWidth: '400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        
+      {/* Основна форма */}
+      <main className="w-full max-w-md flex flex-col gap-3">
         {/* Поле вводу */}
         <input
           type="text"
           placeholder="Задайте хвилююче питання або залиште поле порожнім для розкладу дня"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          style={{
-            width: '100%', padding: '15px', borderRadius: '10px', border: '1px solid #4a148c',
-            backgroundColor: 'rgba(20, 10, 40, 0.8)', color: '#fff', boxSizing: 'border-box', outline: 'none'
-          }}
+          className="w-full p-3.5 bg-[#180f2a]/90 border border-[#3b236e] rounded-xl text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400 text-xs transition shadow-md"
         />
 
         {/* Жовта кнопка */}
         <button
           onClick={handleGetReading}
           disabled={loading}
-          style={{
-            width: '100%', padding: '15px', borderRadius: '10px', border: 'none',
-            backgroundColor: '#ffca28', color: '#000', fontWeight: 'bold',
-            cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1
-          }}
+          className="w-full py-3.5 px-4 bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-black font-bold rounded-xl shadow-lg transition uppercase tracking-wide text-xs disabled:opacity-50"
         >
           {loading ? "ГЕНЕРУЄМО РОЗКЛАД..." : "ОТРИМАТИ РОЗКЛАД (БЕЗКОШТОВНО)"}
         </button>
 
-        {/* Кнопка запрошення */}
-        <button style={{
-            width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #4a148c',
-            backgroundColor: 'transparent', color: '#b39ddb', fontSize: '13px', cursor: 'pointer'
-        }}>
-          🎁 Запросити друга (+1 безкоштовний розклад)
+        {/* Кнопка рефералів */}
+        <button className="w-full py-3 px-4 bg-[#1e1338]/80 hover:bg-[#281a4b] border border-[#3b236e] text-purple-200 text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-md">
+          <span>🎁</span> Запросити друга (+1 безкоштовний розклад)
         </button>
 
-        {/* Блок "Як це працює" */}
-        <div style={{
-          backgroundColor: 'rgba(20, 10, 40, 0.6)', border: '1px solid #4a148c',
-          borderRadius: '10px', padding: '15px', fontSize: '12px', color: '#d1c4e9', lineHeight: '1.6'
-        }}>
-          <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '10px', color: '#fff' }}>🔮 Як це працює?</div>
-          <ul style={{ paddingLeft: '20px', margin: '0' }}>
-            <li>Задайте хвилююче питання або залиште поле порожнім для розкладу дня.</li>
-            <li>Штучний інтелект зробить персональну інтерпретацію.</li>
-            <li>Отримайте миттєве розшифрування та персональну пораду.</li>
-          </ul>
+        {/* Інструкція */}
+        <div className="bg-[#180f2a]/80 border border-[#3b236e] rounded-xl p-4 mt-1 text-xs text-purple-200/90 space-y-2 shadow-md">
+          <div className="font-semibold text-center text-purple-100 flex items-center justify-center gap-1.5 mb-2">
+            <span>🔮</span> Як це працює?
+          </div>
+          <p className="flex items-start gap-2 m-0">
+            <span className="text-purple-400">•</span>
+            Задайте хвилююче питання або залиште поле порожнім для розкладу дня.
+          </p>
+          <p className="flex items-start gap-2 m-0">
+            <span className="text-purple-400">•</span>
+            Штучний інтелект зробить персональну інтерпретацію.
+          </p>
+          <p className="flex items-start gap-2 m-0">
+            <span className="text-purple-400">•</span>
+            Отримайте миттєве розшифрування та персональну пораду.
+          </p>
         </div>
 
-        {/* Виведення помилки */}
+        {/* Помилка */}
         {error && (
-          <div style={{ color: '#ef5350', textAlign: 'center', fontSize: '13px', padding: '10px' }}>
+          <div className="bg-red-900/40 border border-red-500/50 text-red-200 text-xs p-3.5 rounded-xl text-center leading-relaxed">
             {error}
           </div>
         )}
 
-        {/* Блок з ТЕКСТОМ РОЗКЛАДУ (Без карт) */}
+        {/* Текстовий результат */}
         {result && result.reading && (
-          <div style={{
-            backgroundColor: 'rgba(20, 10, 40, 0.9)', border: '1px solid #4a148c',
-            borderRadius: '10px', padding: '20px', marginTop: '10px'
-          }}>
-            {/* Текст розкладу */}
-            <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#fff', whiteSpace: 'pre-wrap' }}>
+          <div className="bg-[#180f2a]/95 border border-[#3b236e] rounded-xl p-5 mt-2 space-y-4 shadow-2xl">
+            <div className="text-xs text-purple-100 leading-relaxed whitespace-pre-line">
               {result.reading}
             </div>
 
-            {/* Заклик поділитися */}
-            <div style={{ textAlign: 'center', fontSize: '11px', color: '#b39ddb', fontStyle: 'italic', margin: '20px 0 15px 0', borderTop: '1px solid #4a148c', paddingTop: '15px' }}>
+            <div className="text-center text-[11px] text-purple-300/80 italic pt-3 border-t border-[#3b236e]">
               ✨ Надішли цей розклад подрузі, щоб дізнатися її карту дня!
             </div>
 
-            {/* Кнопка Share */}
             <button
               onClick={handleShareResult}
-              style={{
-                width: '100%', padding: '12px', borderRadius: '10px', border: 'none',
-                backgroundColor: '#6a1b9a', color: '#fff', fontWeight: 'bold', cursor: 'pointer'
-              }}
+              className="w-full py-3 bg-[#3b236e] hover:bg-[#4c2d8d] text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-md"
             >
-              📲 Надіслати результат у чат
+              <span>📲</span> Надіслати результат у чат
             </button>
           </div>
         )}
@@ -173,4 +158,3 @@ export default function App() {
     </div>
   );
 }
-       
