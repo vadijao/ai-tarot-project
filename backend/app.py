@@ -30,7 +30,6 @@ async def free_reading(req: ReadingRequest):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній у Render Environment")
 
-    # Ретельне очищення ключа від лапок, пробілів та переносів рядків
     clean_key = GEMINI_API_KEY.strip().strip("'").strip('"')
 
     prompt = f"""
@@ -57,10 +56,10 @@ async def free_reading(req: ReadingRequest):
 
     async with httpx.AsyncClient() as client:
         for model_name in models_to_try:
-            url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent"
+            endpoint_url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent"
             try:
                 response = await client.post(
-                    url,
+                    endpoint_url,
                     params={"key": clean_key},
                     json=payload,
                     timeout=30.0
@@ -76,7 +75,7 @@ async def free_reading(req: ReadingRequest):
                         err_detail = err_data.get("error", {}).get("message", response.text)
                     except Exception:
                         err_detail = response.text
-                    last_error = f"{model_name} (HTTP {response.status_code}): {err_detail}"
+                    last_error = f"{model_name}: {err_detail}"
             except Exception as e:
                 last_error = f"{model_name}: {str(e)}"
                 continue
