@@ -1,5 +1,10 @@
 import os
 import json
+
+# Повністю очищаємо системні змінні проксі Render ДО імпорту httpx
+for env_key in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY", "all_proxy"]:
+    os.environ.pop(env_key, None)
+
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,11 +37,11 @@ async def free_reading(req: ReadingRequest):
 
     clean_key = GEMINI_API_KEY.strip("'\" ").strip()
 
-    # trust_env=False повністю блокує зіпсовані системні проксі Render
+    # trust_env=False гарантує, що httpx НЕ буде звертатися до внутрішніх проксі Render
     async with httpx.AsyncClient(trust_env=False) as client:
         candidate_models = []
         
-        # 1. Автоматично запитуємо в Google перелік діючих моделей для вашого ключа
+        # 1. Автоматично запитуємо у Google перелік діючих моделей для вашого ключа
         try:
             list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={clean_key}"
             list_res = await client.get(list_url, timeout=10.0)
@@ -93,8 +98,11 @@ async def free_reading(req: ReadingRequest):
                     clean_json = text.replace("```json", "").replace("```", "").strip()
                     return json.loads(clean_json)
                 else:
-                    data = response.json()
-                    last_error = data.get("error", {}).get("message", response.text)
+                    try:
+                        data_json = response.json()
+                        last_error = data_json.get("error", {}).get("message", response.text)
+                    except Exception:
+                        last_error = response.text
             except Exception as e:
                 last_error = str(e)
                 continue
