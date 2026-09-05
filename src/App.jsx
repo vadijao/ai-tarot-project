@@ -10,7 +10,9 @@ export default function App() {
   const [freeAttempts, setFreeAttempts] = useState(1);
   const [bonusAttempts, setBonusAttempts] = useState(0);
 
-  // Ваша актуальна адреса бекенду на Render
+  // Точний юзернейм вашого бота
+  const botUsername = "y_ai_tarot_bot";
+  // Ваша адреса бекенду на Render
   const backendUrl = "https://ai-tarot-backend-07rv.onrender.com";
 
   const handleGetReading = async () => {
@@ -51,10 +53,23 @@ export default function App() {
     }
   };
 
+  // Реферальне посилання за друга (+1 розклад)
   const handleShare = () => {
-    const botUsername = "y_ai_tarot_bot"; // Вкажіть юзернейм вашого бота без знака @
-    const shareUrl = `https://t.me/share/url?url=https://t.me/${botUsername}&text=Отримай%20безкоштовний%20розклад%20Таро%20від%20ШІ!`;
+    const shareUrl = `https://t.me/share/url?url=https://t.me/${botUsername}&text=${encodeURIComponent("Отримай безкоштовний розклад Таро від ШІ!")}`;
     
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.openTelegramLink(shareUrl);
+    } else {
+      window.open(shareUrl, '_blank');
+    }
+  };
+
+  // НОВА ФУНКЦІЯ: Надіслати самий результат розкладу в чат
+  const handleShareResult = () => {
+    if (!result) return;
+    const shareText = `🔮 Мій розклад Таро:\n\n"${result.reading}"\n\n✨ Дізнайся свою карту дня тут:`;
+    const shareUrl = `https://t.me/share/url?url=https://t.me/${botUsername}/tarot&text=${encodeURIComponent(shareText)}`;
+
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.openTelegramLink(shareUrl);
     } else {
@@ -133,7 +148,7 @@ export default function App() {
         <span className="bg-magic-ball-emoji">🔮</span>
       </div>
 
-      {/* ОСНОВНИЙ КОНТЕНТ (ЗВЕРХУ ФОНУ) */}
+      {/* ОСНОВНИЙ КОНТЕНТ */}
       <div style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
         
         {/* Заголовок ТАРО */}
@@ -239,7 +254,7 @@ export default function App() {
           </p>
         )}
 
-        {/* Результат із картами та текстом */}
+        {/* Результат із картами, текстом, закликом та кнопкою шерінгу */}
         {result && (
           <div style={{
             marginTop: '20px',
@@ -269,9 +284,47 @@ export default function App() {
               </div>
             )}
 
+            {/* Текст розкладу */}
             <p style={{ color: '#ffffff', fontSize: '14px', lineHeight: '1.6', textAlign: 'left', whiteSpace: 'pre-line' }}>
               {result.reading}
             </p>
+
+            {/* ФУНКЦІЯ 1: Заклик до дії в кінці розкладу */}
+            <div style={{
+              marginTop: '16px',
+              paddingTop: '12px',
+              borderTop: '1px dashed #4a2e80',
+              color: '#e5a93c',
+              fontSize: '13px',
+              fontStyle: 'italic',
+              textAlign: 'center'
+            }}>
+              ✨ Надішли цей розклад подрузі, щоб дізнатися її карту дня!
+            </div>
+
+            {/* ФУНКЦІЯ 2: Кнопка відправки результату в чат */}
+            <button
+              onClick={handleShareResult}
+              style={{
+                width: '100%',
+                marginTop: '14px',
+                padding: '12px',
+                borderRadius: '10px',
+                border: 'none',
+                backgroundColor: '#7b2cbf',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 12px rgba(123, 44, 191, 0.4)'
+              }}
+            >
+              📲 Надіслати результат у чат
+            </button>
           </div>
         )}
 
