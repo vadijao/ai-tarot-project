@@ -1,6 +1,7 @@
 import os
 import json
-import http.client
+import urllib.request
+import urllib.error
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -56,35 +57,29 @@ def free_reading(req: ReadingRequest):
     payload_bytes = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode('utf-8')
     
     models_to_try = [
-        "gemini-1.5-flash",
         "gemini-2.0-flash",
-        "gemini-1.5-pro"
+        "gemini-1.5-flash"
     ]
     last_error = ""
 
     for model_name in models_to_try:
+        url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={clean_key}"
         try:
-            conn = http.client.HTTPSConnection("generativelanguage.googleapis.com", 443, timeout=30)
-            
-            # Вказуємо x-goog-api-key у заголовок запиту для коректної авторизації
-            headers = {
-                "Content-Type": "application/json",
-                "x-goog-api-key": clean_key
-            }
-            url_path = f"/v1beta/models/{model_name}:generateContent"
-            
-            conn.request("POST", url_path, body=payload_bytes, headers=headers)
-            res = conn.getresponse()
-            data_str = res.read().decode('utf-8')
-            conn.close()
-
-            if res.status == 200:
-                data = json.loads(data_str)
-                text = data["candidates"][0]["content"]["parts"][0]["text"]
-                clean_json = text.replace("```json", "").replace("```", "").strip()
-                return json.loads(clean_json)
-            else:
-                last_error = f"{model_name} (HTTP {res.status}): {data_str}"
+            req_obj = urllib.request.Request(
+                url,
+                data=payload_bytes,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req_obj, timeout=30.0) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode('utf-8'))
+                    text = data["candidates"][0]["content"]["parts"][0]["text"]
+                    clean_json = text.replace("```json", "").replace("```", "").strip()
+                    return json.loads(clean_json)
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode('utf-8')
+            last_error = f"{model_name} (HTTP {e.code}): {err_body}"
         except Exception as e:
             last_error = f"{model_name}: {str(e)}"
             continue
