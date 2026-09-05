@@ -64,7 +64,7 @@ export default function App() {
     }
   };
 
-  // НОВА ФУНКЦІЯ: Надіслати самий результат розкладу в чат
+  // Надіслати самий результат розкладу в чат
   const handleShareResult = () => {
     if (!result) return;
     const shareText = `🔮 Мій розклад Таро:\n\n"${result.reading}"\n\n✨ Дізнайся свою карту дня тут:`;
@@ -237,7 +237,7 @@ export default function App() {
             color: '#d1b3ff',
             fontSize: '13px',
             cursor: 'pointer',
-            marginBottom: '16px',
+            marginBottom: '12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -246,6 +246,28 @@ export default function App() {
         >
           🎁 Запросити друга (+1 безкоштовний розклад)
         </button>
+
+        {/* НЕВЕЛИКИЙ ОПИС "ЯК ЦЕ ПРАЦЮЄ" ПІД КНОПКАМИ */}
+        <div style={{
+          backgroundColor: '#1a0b3680',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid #3b1d6e80',
+          borderRadius: '10px',
+          padding: '12px',
+          marginBottom: '16px',
+          textAlign: 'left',
+          fontSize: '12px',
+          color: '#b3a0d6'
+        }}>
+          <div style={{ color: '#e5a93c', fontWeight: 'bold', marginBottom: '6px', textAlign: 'center', fontSize: '13px' }}>
+            🔮 Як це працює?
+          </div>
+          <ul style={{ margin: 0, paddingLeft: '18px', lineHeight: '1.6' }}>
+            <li>Задайте хвилююче питання або залиште поле порожнім для розкладу дня.</li>
+            <li>Штучний інтелект витягне 3 карти (Минуле, Теперішнє, Майбутнє).</li>
+            <li>Отримайте миттєве розшифрування та персональну пораду.</li>
+          </ul>
+        </div>
 
         {/* Повідомлення про помилку */}
         {error && (
@@ -289,7 +311,7 @@ export default function App() {
               {result.reading}
             </p>
 
-            {/* ФУНКЦІЯ 1: Заклик до дії в кінці розкладу */}
+            {/* Заклик до дії в кінці розкладу */}
             <div style={{
               marginTop: '16px',
               paddingTop: '12px',
@@ -302,7 +324,7 @@ export default function App() {
               ✨ Надішли цей розклад подрузі, щоб дізнатися її карту дня!
             </div>
 
-            {/* ФУНКЦІЯ 2: Кнопка відправки результату в чат */}
+            {/* Кнопка відправки результату в чат */}
             <button
               onClick={handleShareResult}
               style={{
