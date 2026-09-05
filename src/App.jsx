@@ -15,7 +15,7 @@ function App() {
     return parseInt(localStorage.getItem('tarot_bonus') || '0', 10);
   });
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://ai-tarot-backend-07zy.onrender.com";
+ const backendUrl = "https://ai-tarot-backend-07rv.onrender.com";
   const BOT_USERNAME = "MyTarotBot";
 
   useEffect(() => {
