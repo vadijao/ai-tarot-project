@@ -36,7 +36,6 @@ export default function App() {
 
       if (response.ok) {
         setResult(data);
-        // Списання спроби після успішного розкладу
         if (freeAttempts > 0) {
           setFreeAttempts(freeAttempts - 1);
         } else if (bonusAttempts > 0) {
@@ -52,9 +51,8 @@ export default function App() {
     }
   };
 
-  // Функція для поширення реферального посилання
   const handleShare = () => {
-    const botUsername = "ai_tarot_bot"; // ЗАМІНІТЬ НА ЮЗЕРНЕЙМ ВАШОГО БОТА (без @)
+    const botUsername = "y_ai_tarot_bot"; // Вкажіть юзернейм вашого бота без знака @
     const shareUrl = `https://t.me/share/url?url=https://t.me/${botUsername}&text=Отримай%20безкоштовний%20розклад%20Таро%20від%20ШІ!`;
     
     if (window.Telegram?.WebApp) {
@@ -65,38 +63,82 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0f051d', color: '#ffffff', padding: '20px', fontFamily: 'sans-serif' }}>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#0f051d',
+      color: '#ffffff',
+      padding: '20px',
+      fontFamily: 'sans-serif',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
       
-      {/* CSS Анімації для магічної кулі та кнопки */}
+      {/* СТИЛІ ТА АНІМАЦІЇ ДЛЯ ФОНОВОЇ МАГІЧНОЇ КУЛІ */}
       <style>
         {`
-          @keyframes float {
-            0% { transform: translateY(0px); text-shadow: 0 0 10px rgba(187, 134, 252, 0.4); }
-            50% { transform: translateY(-6px); text-shadow: 0 0 25px rgba(229, 169, 60, 0.8), 0 0 35px rgba(187, 134, 252, 0.6); }
-            100% { transform: translateY(0px); text-shadow: 0 0 10px rgba(187, 134, 252, 0.4); }
+          @keyframes bgGlow {
+            0% {
+              transform: translate(-50%, -50%) scale(1);
+              opacity: 0.3;
+            }
+            50% {
+              transform: translate(-50%, -50%) scale(1.2);
+              opacity: 0.55;
+            }
+            100% {
+              transform: translate(-50%, -50%) scale(1);
+              opacity: 0.3;
+            }
           }
-          .magic-ball {
-            display: inline-block;
-            animation: float 2.5s ease-in-out infinite;
-            font-size: 34px;
-            margin-left: 8px;
+
+          .bg-magic-ball-container {
+            position: fixed;
+            top: 38%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(187, 134, 252, 0.45) 0%, rgba(107, 33, 168, 0.25) 55%, rgba(15, 5, 29, 0) 75%);
+            box-shadow: 0 0 90px rgba(187, 134, 252, 0.35), inset 0 0 50px rgba(229, 169, 60, 0.25);
+            pointer-events: none;
+            z-index: 0;
+            animation: bgGlow 4s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
+
+          .bg-magic-ball-emoji {
+            font-size: 150px;
+            opacity: 0.22;
+            filter: blur(2px);
+            user-select: none;
+          }
+
           @keyframes glow {
             0% { box-shadow: 0 0 5px rgba(229, 169, 60, 0.2); }
             50% { box-shadow: 0 0 20px rgba(229, 169, 60, 0.6); }
             100% { box-shadow: 0 0 5px rgba(229, 169, 60, 0.2); }
           }
+          
           .glow-btn:not(:disabled) {
             animation: glow 2s infinite;
           }
         `}
       </style>
 
-      <div style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'center' }}>
+      {/* МАГІЧНА КУЛЯ НА ЗАДНЬОМУ ФОНІ */}
+      <div className="bg-magic-ball-container">
+        <span className="bg-magic-ball-emoji">🔮</span>
+      </div>
+
+      {/* ОСНОВНИЙ КОНТЕНТ (ЗВЕРХУ ФОНУ) */}
+      <div style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
         
-        {/* Заголовок із АНІМОВАНОЮ МАГІЧНОЮ КУЛЕЮ */}
-        <h1 style={{ color: '#ffffff', fontSize: '32px', fontWeight: 'bold', marginBottom: '4px', letterSpacing: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          ТАРО <span className="magic-ball">🔮</span>
+        {/* Заголовок ТАРО */}
+        <h1 style={{ color: '#ffffff', fontSize: '32px', fontWeight: 'bold', marginBottom: '4px', letterSpacing: '2px' }}>
+          ТАРО
         </h1>
         <p style={{ color: '#b3a0d6', fontSize: '13px', marginBottom: '20px' }}>
           Таємниці майбутнього у картах
@@ -106,7 +148,8 @@ export default function App() {
         <div style={{
           display: 'flex',
           justify: 'space-around',
-          backgroundColor: '#1a0b36',
+          backgroundColor: '#1a0b36cc',
+          backdropFilter: 'blur(8px)',
           border: '1px solid #3b1d6e',
           borderRadius: '12px',
           padding: '12px 8px',
@@ -134,7 +177,8 @@ export default function App() {
             padding: '12px 16px',
             borderRadius: '10px',
             border: '1px solid #4a2e80',
-            backgroundColor: '#1a0b36',
+            backgroundColor: '#1a0b36cc',
+            backdropFilter: 'blur(8px)',
             color: '#ffffff',
             marginBottom: '12px',
             boxSizing: 'border-box',
@@ -143,7 +187,7 @@ export default function App() {
           }}
         />
 
-        {/* Кнопка розкладу (з ефектом світіння) */}
+        {/* Кнопка розкладу */}
         <button
           className="glow-btn"
           onClick={handleGetReading}
@@ -162,7 +206,7 @@ export default function App() {
             transition: 'all 0.3s ease'
           }}
         >
-          {loading ? "🔮 Карти перемішуються..." : "ОТРИМАТИ РОЗКЛАД (БЕЗКОШТОВНО)"}
+          {loading ? "Карти перемішуються..." : "ОТРИМАТИ РОЗКЛАД (БЕЗКОШТОВНО)"}
         </button>
 
         {/* Кнопка запрошення друга */}
@@ -173,7 +217,8 @@ export default function App() {
             padding: '12px',
             borderRadius: '10px',
             border: '1px solid #6b3ba7',
-            backgroundColor: '#261247',
+            backgroundColor: '#261247cc',
+            backdropFilter: 'blur(8px)',
             color: '#d1b3ff',
             fontSize: '13px',
             cursor: 'pointer',
@@ -199,10 +244,10 @@ export default function App() {
           <div style={{
             marginTop: '20px',
             padding: '16px',
-            backgroundColor: '#1e0e3e',
+            backgroundColor: '#1e0e3ecc',
+            backdropFilter: 'blur(10px)',
             borderRadius: '12px',
-            border: '1px solid #e5a93c40',
-            animation: 'fadeIn 0.5s ease-in'
+            border: '1px solid #e5a93c40'
           }}>
             {result.cards && result.cards.length > 0 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '16px' }}>
