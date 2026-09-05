@@ -15,11 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =================================================================
-# ПРЯМЕ ВШИВАННЯ КЛЮЧА (Вставте свій ключ між лапками)
-# Приклад: GEMINI_API_KEY = "AIzaSyD_xxxxxxxxxxxxxxxxxxxxxx"
-GEMINI_API_KEY = "AQ.Ab8RN6J2aZF_IaGXJ4BkvFh5mPaqUyXdOAIhricC7Fi7D6kFQQ"
-# =================================================================
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 class ReadingRequest(BaseModel):
     question: str = "Загальний розклад"
@@ -31,11 +27,13 @@ def read_root():
 
 @app.post("/free-reading")
 def free_reading(req: ReadingRequest):
-    # Очищуємо ключ від можливих випадкових пробілів
-    clean_key = GEMINI_API_KEY.strip()
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній у Render Environment")
 
-    if not clean_key or clean_key == "ВСТАВТЕ_ВАШ_КЛЮЧ_ТУТ":
-        raise HTTPException(status_code=500, detail="Ключ API не вставлено в код")
+    clean_key = GEMINI_API_KEY.strip().strip("'").strip('"')
+
+    if not clean_key:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY порожній")
 
     prompt = f"""
     Ти — досвідчений таролог. Зроби розклад з 3 карт на питання: "{req.question}".
@@ -56,7 +54,13 @@ def free_reading(req: ReadingRequest):
     """
 
     payload_bytes = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode('utf-8')
-    models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
+    
+    # Актуальні назви моделей Gemini для v1beta API
+    models_to_try = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash"
+    ]
     last_error = ""
 
     for model_name in models_to_try:
