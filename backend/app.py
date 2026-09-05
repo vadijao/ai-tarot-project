@@ -1,13 +1,6 @@
 import os
 import json
-
-# Повністю очищаємо системні змінні проксі Render ДО імпорту мережевих модулів
-for key in list(os.environ.keys()):
-    if "proxy" in key.lower():
-        os.environ.pop(key, None)
-
-import urllib.request
-import urllib.error
+import http.client
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -37,7 +30,7 @@ def free_reading(req: ReadingRequest):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній у Render Environment")
 
-    clean_key = GEMINI_API_KEY.strip().strip("'").strip('"').strip()
+    clean_key = GEMINI_API_KEY.strip().strip("'").strip('"')
 
     if not clean_key:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY порожній")
@@ -63,32 +56,29 @@ def free_reading(req: ReadingRequest):
     payload_bytes = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode('utf-8')
     
     models_to_try = [
-        "gemini-2.0-flash",
-        "gemini-1.5-flash"
+        "gemini-1.5-flash",
+        "gemini-2.0-flash"
     ]
     last_error = ""
 
-    # Примусово створюємо відкривач запитів БЕЗ системних проксі
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-
     for model_name in models_to_try:
-        url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={clean_key}"
         try:
-            req_obj = urllib.request.Request(
-                url,
-                data=payload_bytes,
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-            with opener.open(req_obj, timeout=30.0) as response:
-                if response.status == 200:
-                    data = json.loads(response.read().decode('utf-8'))
-                    text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    clean_json = text.replace("```json", "").replace("```", "").strip()
-                    return json.loads(clean_json)
-        except urllib.error.HTTPError as e:
-            err_body = e.read().decode('utf-8')
-            last_error = f"{model_name} (HTTP {e.code}): {err_body}"
+            conn = http.client.HTTPSConnection("generativelanguage.googleapis.com", 443, timeout=30)
+            headers = {"Content-Type": "application/json"}
+            url_path = f"/v1beta/models/{model_name}:generateContent?key={clean_key}"
+            
+            conn.request("POST", url_path, body=payload_bytes, headers=headers)
+            res = conn.getresponse()
+            data_str = res.read().decode('utf-8')
+            conn.close()
+
+            if res.status == 200:
+                data = json.loads(data_str)
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                clean_json = text.replace("```json", "").replace("```", "").strip()
+                return json.loads(clean_json)
+            else:
+                last_error = f"{model_name} (HTTP {res.status}): {data_str}"
         except Exception as e:
             last_error = f"{model_name}: {str(e)}"
             continue
