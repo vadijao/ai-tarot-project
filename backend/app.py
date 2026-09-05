@@ -35,6 +35,33 @@ def free_reading(req: ReadingRequest):
     if not clean_key:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY порожній")
 
+    host = "generativelanguage.googleapis.com"
+    candidate_models = []
+
+    # 1. Запитуємо в Google діючі моделі для вашого API-ключа через http.client (без проксі Render)
+    try:
+        conn = http.client.HTTPSConnection(host, 443, timeout=8.0)
+        conn.request("GET", f"/v1beta/models?key={clean_key}")
+        res = conn.getresponse()
+        if res.status == 200:
+            data = json.loads(res.read().decode('utf-8'))
+            for m in data.get("models", []):
+                if "generateContent" in m.get("supportedGenerationMethods", []):
+                    name = m.get("name", "")
+                    if name:
+                        candidate_models.append(name)
+        conn.close()
+    except Exception:
+        pass
+
+    # 2. Актуальний резервний список лише з діючих моделей
+    if not candidate_models:
+        candidate_models = [
+            "models/gemini-2.5-flash",
+            "models/gemini-1.5-flash",
+            "models/gemini-2.0-flash"
+        ]
+
     prompt = f"""
     Ти — досвідчений таролог. Зроби розклад з 3 карт на питання: "{req.question}".
     
@@ -53,23 +80,13 @@ def free_reading(req: ReadingRequest):
     Жезли: wa01.jpg, wa02.jpg, wa03.jpg, wa04.jpg, wa05.jpg, wa06.jpg, wa07.jpg, wa08.jpg, wa09.jpg, wa10.jpg, wa11.jpg, wa12.jpg, wa13.jpg, wa14.jpg
     """
 
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    payload_bytes = json.dumps(payload).encode('utf-8')
-
-    # Пріоритет швидких моделей без зайвих GET-запитів
-    models_to_try = [
-        "models/gemini-1.5-flash",
-        "models/gemini-2.0-flash",
-        "models/gemini-1.5-pro"
-    ]
-
+    payload_bytes = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode('utf-8')
     last_error = ""
-    host = "generativelanguage.googleapis.com"
 
-    for model_path in models_to_try:
+    # 3. Генерація через першу доступну модель
+    for model_path in candidate_models:
         try:
-            # Зменшено таймаут до 12 секунд для швидкого фолбеку
-            conn = http.client.HTTPSConnection(host, 443, timeout=12.0)
+            conn = http.client.HTTPSConnection(host, 443, timeout=15.0)
             headers = {"Content-Type": "application/json"}
             url_path = f"/v1beta/{model_path}:generateContent?key={clean_key}"
             
@@ -86,11 +103,12 @@ def free_reading(req: ReadingRequest):
             else:
                 try:
                     err_json = json.loads(data_str)
-                    last_error = err_json.get("error", {}).get("message", data_str)
+                    last_error = f"{model_path} (HTTP {res.status}): " + err_json.get("error", {}).get("message", data_str)
                 except Exception:
-                    last_error = data_str
+                    last_error = f"{model_path} (HTTP {res.status}): {data_str}"
         except Exception as e:
-            last_error = str(e)
+            last_error = f"{model_path}: {str(e)}"
             continue
 
     raise HTTPException(status_code=500, detail=f"Google API Error: {last_error}")
+    
