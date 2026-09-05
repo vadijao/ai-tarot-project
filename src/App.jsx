@@ -1,149 +1,140 @@
-import { useState, useEffect } from 'react';
-import './App.css';
+import React, { useState } from 'react';
 
-function App() {
+export default function App() {
   const [question, setQuestion] = useState('');
-  const [result, setResult] = useState('');
-  const [status, setStatus] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
 
-  const [readingsDone, setReadingsDone] = useState(() => {
-    return parseInt(localStorage.getItem('tarot_done') || '0', 10);
-  });
-  
-  const [bonusCount, setBonusCount] = useState(() => {
-    return parseInt(localStorage.getItem('tarot_bonus') || '0', 10);
-  });
+  // Ваша актуальна адреса бекенду на Render
+  const backendUrl = "https://ai-tarot-backend-07rv.onrender.com";
 
- const backendUrl = "https://ai-tarot-backend-07rv.onrender.com";
-  const BOT_USERNAME = "MyTarotBot";
-
-  useEffect(() => {
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
-    }
-  }, []);
-
-  const isFree = readingsDone === 0 || bonusCount > 0;
-
-  const fetchReading = async () => {
-    setIsLoading(true);
-    setStatus('🔮 Звертаємося до Всесвіту...');
-    setResult('');
+  const handleGetReading = async () => {
+    setLoading(true);
+    setError('');
+    setResult(null);
 
     try {
-const res = await fetch(`${backendUrl}/free-reading`, {        
+      const response = await fetch(`${backendUrl}/free-reading`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: question || "Загальний розклад" })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ question: question || "Загальний розклад" }),
       });
-      const data = await res.json();
 
-      if (res.ok) {
-        setResult(data.reading);
-        setStatus('✨ Розклад готовий!');
-        if (readingsDone === 0) {
-          setReadingsDone(1);
-          localStorage.setItem('tarot_done', '1');
-        } else if (bonusCount > 0) {
-          const nextBonus = bonusCount - 1;
-          setBonusCount(nextBonus);
-          localStorage.setItem('tarot_bonus', nextBonus.toString());
-        }
+      const data = await response.json();
+
+      if (response.ok) {
+        setResult(data);
       } else {
-        throw new Error(data.detail || 'Помилка');
+        setError(data.detail || "Сталася помилка при отриманні розкладу");
       }
     } catch (err) {
-      setStatus(`⚠️ ${err.message}`);
+      setError("⚠️ Не вдалося з'єднатися з сервером");
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAction = async () => {
-    if (isFree) {
-      await fetchReading();
-    } else {
-      setIsLoading(true);
-      setStatus('Створення рахунку Stars...');
-
-      try {
-        const res = await fetch(`${backendUrl}/create-invoice`, { method: 'POST' });
-        const data = await res.json();
-
-        if (data.invoice_link) {
-          window.Telegram.WebApp.openInvoice(data.invoice_link, async (paymentStatus) => {
-            if (paymentStatus === 'paid') {
-              await fetchReading();
-            } else {
-              setStatus('❌ Оплату скасовано.');
-              setIsLoading(false);
-            }
-          });
-        } else {
-          throw new Error('Помилка генерації рахунку');
-        }
-      } catch (err) {
-        setStatus(`⚠️ ${err.message}`);
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const handleInvite = () => {
-    const link = `https://t.me/share/url?url=https://t.me/${BOT_USERNAME}&text=Отримай%20безкоштовний%20розклад%20Таро!`;
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.openTelegramLink(link);
-    } else {
-      window.open(link, '_blank');
+      setLoading(false);
     }
   };
 
   return (
-    <div className="app-container">
-      {/* 🔮 МАГІЧНА КУЛЯ НА ФОНІ */}
-      <div className="magic-bg">
-        <div className="crystal-ball"></div>
-      </div>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0f051d', color: '#ffffff', padding: '20px', fontFamily: 'sans-serif' }}>
+      <div style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'center' }}>
+        
+        {/* Заголовок ТАРО - БІЛОГО КОЛЬОРУ */}
+        <h1 style={{ color: '#ffffff', fontSize: '32px', fontWeight: 'bold', marginBottom: '6px', letterSpacing: '2px' }}>
+          ТАРО
+        </h1>
+        <p style={{ color: '#b3a0d6', fontSize: '14px', marginBottom: '24px' }}>
+          Таємниці майбутнього у картах
+        </p>
 
-      {/* 🃏 ОСНОВНА КАРТКА ИНТЕРФЕЙСУ */}
-      <div className="tarot-card-box">
-        <h1 className="...">ТАРО</h1>
-        <p className="subtitle">Таємниці майбутнього у картах</p>
-
-        <div className="stats-grid">
-          <div>
-            <div className="stat-num">{readingsDone === 0 ? "1 (Безкоштовно)" : "Використано"}</div>
-            <div className="stat-desc">Перша спроба</div>
-          </div>
-          <div>
-            <div className="stat-num">{bonusCount}</div>
-            <div className="stat-desc">Бонуси за друзів</div>
-          </div>
-        </div>
-
-        <input 
-          className="magical-input" 
-          type="text" 
-          placeholder="Напишіть своє запитання..." 
-          value={question} 
-          onChange={(e) => setQuestion(e.target.value)} 
+        {/* Поле вводу питання */}
+        <input
+          type="text"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="Введіть ваше питання..."
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            borderRadius: '10px',
+            border: '1px solid #4a2e80',
+            backgroundColor: '#1a0b36',
+            color: '#ffffff',
+            marginBottom: '16px',
+            boxSizing: 'border-box',
+            outline: 'none'
+          }}
         />
 
-        <button className="btn-main" onClick={handleAction} disabled={isLoading}>
-          {isLoading ? "Магія працює..." : `Отримати розклад (${isFree ? 'БЕЗКОШТОВНО' : '50 ⭐️'})`}
+        {/* Кнопка запуску */}
+        <button
+          onClick={handleGetReading}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '14px',
+            borderRadius: '10px',
+            border: 'none',
+            backgroundColor: '#e5a93c',
+            color: '#1a0b36',
+            fontWeight: 'bold',
+            fontSize: '15px',
+            cursor: 'pointer',
+            marginBottom: '16px'
+          }}
+        >
+          {loading ? "Карти перемішуються..." : "ОТРИМАТИ РОЗКЛАД"}
         </button>
 
-        <button className="btn-share" onClick={handleInvite}>
-          🎁 Запросити друга (+1 безкоштовний розклад)
-        </button>
+        {/* Повідомлення про помилку */}
+        {error && (
+          <p style={{ color: '#ff6b6b', fontSize: '14px', margin: '10px 0' }}>
+            {error}
+          </p>
+        )}
 
-        {status && <p style={{ fontSize: '0.85rem', color: '#ffd700', marginTop: '12px', textAlign: 'center' }}>{status}</p>}
-        {result && <div className="result-area"><p>{result}</p></div>}
+        {/* Результат із картами та білим текстом */}
+        {result && (
+          <div style={{
+            marginTop: '20px',
+            padding: '16px',
+            backgroundColor: '#1e0e3e',
+            borderRadius: '12px',
+            border: '1px solid #e5a93c40'
+          }}>
+            
+            {/* Картинки 3 карт Таро у ряд */}
+            {result.cards && result.cards.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '16px' }}>
+                {result.cards.map((cardName, idx) => (
+                  <img
+                    key={idx}
+                    src={`/cards/${cardName}`}
+                    alt="Таро карта"
+                    style={{
+                      width: '80px',
+                      height: '140px',
+                      objectFit: 'cover',
+                      borderRadius: '6px',
+                      border: '1px solid #e5a93c',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.5)'
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Текст розкладу - БІЛОГО КОЛЬОРУ */}
+            <p style={{ color: '#ffffff', fontSize: '14px', lineHeight: '1.6', textAlign: 'left', whiteSpace: 'pre-line' }}>
+              {result.reading}
+            </p>
+            
+          </div>
+        )}
+
       </div>
     </div>
   );
 }
-
-export default App;
