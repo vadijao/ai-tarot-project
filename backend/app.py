@@ -1,14 +1,9 @@
 import os
 import json
-import urllib.request
-import urllib.error
+import http.client
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
-# Повністю видаляємо системні проксі Render, які ламають мережеві запити
-for env_var in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
-    os.environ.pop(env_var, None)
 
 app = FastAPI()
 
@@ -31,14 +26,15 @@ def read_root():
     return {"status": "AI Tarot Backend is running!"}
 
 @app.post("/free-reading")
-async def free_reading(req: ReadingRequest):
+def free_reading(req: ReadingRequest):
     if not GEMINI_API_KEY:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній у Render Environment")
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній")
 
+    # Суворе очищення ключа
     clean_key = "".join(c for c in GEMINI_API_KEY if c.isalnum() or c in "-_")
 
     if not clean_key:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY порожній або некоректний")
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY некоректний")
 
     prompt = f"""
     Ти — досвідчений таролог. Зроби розклад з 3 карт на питання: "{req.question}".
@@ -58,35 +54,31 @@ async def free_reading(req: ReadingRequest):
     Жезли: wa01.jpg, wa02.jpg, wa03.jpg, wa04.jpg, wa05.jpg, wa06.jpg, wa07.jpg, wa08.jpg, wa09.jpg, wa10.jpg, wa11.jpg, wa12.jpg, wa13.jpg, wa14.jpg
     """
 
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    payload_bytes = json.dumps(payload).encode('utf-8')
-    
+    payload_bytes = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode('utf-8')
     models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
     last_error = ""
 
-    # Явно блокуємо перенаправлення через проксі
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-
+    # Використовуємо низькорівневе пряме підключення, обходячи баги URL-парсерів Render
     for model_name in models_to_try:
-        url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={clean_key}"
         try:
-            req_obj = urllib.request.Request(
-                url, 
-                data=payload_bytes, 
-                headers={'Content-Type': 'application/json'},
-                method='POST'
-            )
-            with opener.open(req_obj, timeout=30.0) as response:
-                if response.status == 200:
-                    data = json.loads(response.read().decode('utf-8'))
-                    text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    clean_json = text.replace("```json", "").replace("```", "").strip()
-                    return json.loads(clean_json)
-        except urllib.error.HTTPError as e:
-            err_body = e.read().decode('utf-8')
-            last_error = f"{model_name} (HTTP {e.code}): {err_body}"
+            conn = http.client.HTTPSConnection("generativelanguage.googleapis.com", 443, timeout=30)
+            headers = {"Content-Type": "application/json"}
+            url_path = f"/v1beta/models/{model_name}:generateContent?key={clean_key}"
+            
+            conn.request("POST", url_path, body=payload_bytes, headers=headers)
+            res = conn.getresponse()
+            data_str = res.read().decode('utf-8')
+            conn.close()
+
+            if res.status == 200:
+                data = json.loads(data_str)
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                clean_json = text.replace("```json", "").replace("```", "").strip()
+                return json.loads(clean_json)
+            else:
+                last_error = f"{model_name} (HTTP {res.status}): {data_str}"
         except Exception as e:
             last_error = f"{model_name}: {str(e)}"
-        continue
+            continue
 
     raise HTTPException(status_code=500, detail=f"Google API Error: {last_error}")
