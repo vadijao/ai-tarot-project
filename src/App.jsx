@@ -54,7 +54,7 @@ export default function App() {
 
   // Функція для поширення реферального посилання
   const handleShare = () => {
-    const botUsername = "YOUR_BOT_USERNAME"; // Вкажіть юзернейм вашого бота без символу @
+    const botUsername = "y_ai_tarot_bot"; // Вкажіть юзернейм вашого бота без символу @
     const shareUrl = `https://t.me/share/url?url=https://t.me/${botUsername}&text=Отримай%20безкоштовний%20розклад%20Таро%20від%20ШІ!`;
     
     if (window.Telegram?.WebApp) {
