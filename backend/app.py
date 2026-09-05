@@ -1,6 +1,7 @@
 import os
 import json
-import httpx
+import urllib.request
+import urllib.error
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -30,11 +31,11 @@ async def free_reading(req: ReadingRequest):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній у Render Environment")
 
-    # Суворе очищення ключа від усіх невидимих символів, пробілів, переносу рядків та лапок
+    # Очищення ключа від можливих прихованих символів
     clean_key = "".join(c for c in GEMINI_API_KEY if c.isalnum() or c in "-_")
 
     if not clean_key:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY має некоректний формат у Render Environment")
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY має некоректний формат")
 
     prompt = f"""
     Ти — досвідчений таролог. Зроби розклад з 3 карт на питання: "{req.question}".
@@ -55,33 +56,31 @@ async def free_reading(req: ReadingRequest):
     """
 
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    payload_bytes = json.dumps(payload).encode('utf-8')
     models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
     last_error = ""
 
-    async with httpx.AsyncClient(trust_env=False) as client:
-        for model_name in models_to_try:
-            base_url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent"
-            try:
-                response = await client.post(
-                    base_url,
-                    params={"key": clean_key},
-                    json=payload,
-                    headers={"Content-Type": "application/json"},
-                    timeout=30.0
-                )
-                if response.status_code == 200:
-                    data = response.json()
+    # Використовуємо вбудовану бібліотеку urllib замість httpx, щоб обійти баг Render
+    for model_name in models_to_try:
+        url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={clean_key}"
+        try:
+            req_obj = urllib.request.Request(
+                url, 
+                data=payload_bytes, 
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+            with urllib.request.urlopen(req_obj, timeout=30.0) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode('utf-8'))
                     text = data["candidates"][0]["content"]["parts"][0]["text"]
                     clean_json = text.replace("```json", "").replace("```", "").strip()
                     return json.loads(clean_json)
-                else:
-                    try:
-                        err_detail = response.json().get("error", {}).get("message", response.text)
-                    except Exception:
-                        err_detail = response.text
-                    last_error = f"{model_name} (HTTP {response.status_code}): {err_detail}"
-            except Exception as e:
-                last_error = f"{model_name}: {str(e)}"
-                continue
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode('utf-8')
+            last_error = f"{model_name} (HTTP {e.code}): {err_body}"
+        except Exception as e:
+            last_error = f"{model_name}: {str(e)}"
+        continue
 
-        raise HTTPException(status_code=500, detail=f"Google API Error: {last_error}")
+    raise HTTPException(status_code=500, detail=f"Google API Error: {last_error}")
