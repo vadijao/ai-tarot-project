@@ -15,7 +15,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+# =================================================================
+# ПРЯМЕ ВШИВАННЯ КЛЮЧА (Вставте свій ключ між лапками)
+# Приклад: GEMINI_API_KEY = "AIzaSyD_xxxxxxxxxxxxxxxxxxxxxx"
+GEMINI_API_KEY = "AQ.Ab8RN6J2aZF_IaGXJ4BkvFh5mPaqUyXdOAIhricC7Fi7D6kFQQ"
+# =================================================================
 
 class ReadingRequest(BaseModel):
     question: str = "Загальний розклад"
@@ -27,14 +31,11 @@ def read_root():
 
 @app.post("/free-reading")
 def free_reading(req: ReadingRequest):
-    if not GEMINI_API_KEY:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY відсутній")
+    # Очищуємо ключ від можливих випадкових пробілів
+    clean_key = GEMINI_API_KEY.strip()
 
-    # Суворе очищення ключа
-    clean_key = "".join(c for c in GEMINI_API_KEY if c.isalnum() or c in "-_")
-
-    if not clean_key:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY некоректний")
+    if not clean_key or clean_key == "ВСТАВТЕ_ВАШ_КЛЮЧ_ТУТ":
+        raise HTTPException(status_code=500, detail="Ключ API не вставлено в код")
 
     prompt = f"""
     Ти — досвідчений таролог. Зроби розклад з 3 карт на питання: "{req.question}".
@@ -58,7 +59,6 @@ def free_reading(req: ReadingRequest):
     models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
     last_error = ""
 
-    # Використовуємо низькорівневе пряме підключення, обходячи баги URL-парсерів Render
     for model_name in models_to_try:
         try:
             conn = http.client.HTTPSConnection("generativelanguage.googleapis.com", 443, timeout=30)
