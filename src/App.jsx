@@ -15,8 +15,8 @@ function App() {
     return parseInt(localStorage.getItem('tarot_bonus') || '0', 10);
   });
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const BOT_USERNAME = "ВАШ_BOT_USERNAME";
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://ai-tarot-backend-07zy.onrender.com";
+  const BOT_USERNAME = "MyTarotBot";
 
   useEffect(() => {
     if (window.Telegram?.WebApp) {
