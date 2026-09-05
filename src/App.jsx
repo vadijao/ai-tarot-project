@@ -54,7 +54,7 @@ export default function App() {
 
   // Функція для поширення реферального посилання
   const handleShare = () => {
-    const botUsername = "y_ai_tarot_bot"; // Вкажіть юзернейм вашого бота без символу @
+    const botUsername = "ai_tarot_bot"; // ЗАМІНІТЬ НА ЮЗЕРНЕЙМ ВАШОГО БОТА (без @)
     const shareUrl = `https://t.me/share/url?url=https://t.me/${botUsername}&text=Отримай%20безкоштовний%20розклад%20Таро%20від%20ШІ!`;
     
     if (window.Telegram?.WebApp) {
@@ -66,11 +66,37 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0f051d', color: '#ffffff', padding: '20px', fontFamily: 'sans-serif' }}>
+      
+      {/* CSS Анімації для магічної кулі та кнопки */}
+      <style>
+        {`
+          @keyframes float {
+            0% { transform: translateY(0px); text-shadow: 0 0 10px rgba(187, 134, 252, 0.4); }
+            50% { transform: translateY(-6px); text-shadow: 0 0 25px rgba(229, 169, 60, 0.8), 0 0 35px rgba(187, 134, 252, 0.6); }
+            100% { transform: translateY(0px); text-shadow: 0 0 10px rgba(187, 134, 252, 0.4); }
+          }
+          .magic-ball {
+            display: inline-block;
+            animation: float 2.5s ease-in-out infinite;
+            font-size: 34px;
+            margin-left: 8px;
+          }
+          @keyframes glow {
+            0% { box-shadow: 0 0 5px rgba(229, 169, 60, 0.2); }
+            50% { box-shadow: 0 0 20px rgba(229, 169, 60, 0.6); }
+            100% { box-shadow: 0 0 5px rgba(229, 169, 60, 0.2); }
+          }
+          .glow-btn:not(:disabled) {
+            animation: glow 2s infinite;
+          }
+        `}
+      </style>
+
       <div style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'center' }}>
         
-        {/* Заголовок БІЛОГО кольору */}
-        <h1 style={{ color: '#ffffff', fontSize: '32px', fontWeight: 'bold', marginBottom: '4px', letterSpacing: '2px' }}>
-          ТАРО
+        {/* Заголовок із АНІМОВАНОЮ МАГІЧНОЮ КУЛЕЮ */}
+        <h1 style={{ color: '#ffffff', fontSize: '32px', fontWeight: 'bold', marginBottom: '4px', letterSpacing: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          ТАРО <span className="magic-ball">🔮</span>
         </h1>
         <p style={{ color: '#b3a0d6', fontSize: '13px', marginBottom: '20px' }}>
           Таємниці майбутнього у картах
@@ -112,12 +138,14 @@ export default function App() {
             color: '#ffffff',
             marginBottom: '12px',
             boxSizing: 'border-box',
-            outline: 'none'
+            outline: 'none',
+            fontSize: '15px'
           }}
         />
 
-        {/* Кнопка розкладу */}
+        {/* Кнопка розкладу (з ефектом світіння) */}
         <button
+          className="glow-btn"
           onClick={handleGetReading}
           disabled={loading}
           style={{
@@ -130,10 +158,11 @@ export default function App() {
             fontWeight: 'bold',
             fontSize: '15px',
             cursor: 'pointer',
-            marginBottom: '10px'
+            marginBottom: '10px',
+            transition: 'all 0.3s ease'
           }}
         >
-          {loading ? "Карти перемішуються..." : "ОТРИМАТИ РОЗКЛАД (БЕЗКОШТОВНО)"}
+          {loading ? "🔮 Карти перемішуються..." : "ОТРИМАТИ РОЗКЛАД (БЕЗКОШТОВНО)"}
         </button>
 
         {/* Кнопка запрошення друга */}
@@ -172,7 +201,8 @@ export default function App() {
             padding: '16px',
             backgroundColor: '#1e0e3e',
             borderRadius: '12px',
-            border: '1px solid #e5a93c40'
+            border: '1px solid #e5a93c40',
+            animation: 'fadeIn 0.5s ease-in'
           }}>
             {result.cards && result.cards.length > 0 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '16px' }}>
@@ -187,7 +217,7 @@ export default function App() {
                       objectFit: 'cover',
                       borderRadius: '6px',
                       border: '1px solid #e5a93c',
-                      boxShadow: '0 4px 8px rgba(0,0,0,0.5)'
+                      boxShadow: '0 4px 15px rgba(229, 169, 60, 0.3)'
                     }}
                   />
                 ))}
